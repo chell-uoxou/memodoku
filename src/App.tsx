@@ -9,7 +9,7 @@ import { suppressBrowserGestures } from './gestures';
 import { emptyMarks } from './model/board';
 import * as db from './db/db';
 import { decodeShare, encodeShare, shareUrl } from './share/codec';
-import { shareLink } from './share/send';
+import { saveImage, shareLink } from './share/send';
 import { renderBoardPng } from './share/image';
 import { Toast } from './components/ui/Toast';
 import { importScreenshot, pickImage, readClipboardImage } from './vision/import';
@@ -504,8 +504,11 @@ export default function App() {
    */
   const shareCache = useRef(new Map<string, { url: string; image: File | null }>());
 
+  const shareKey = (memoSet: MemoSet) =>
+    `${memoSet.id}:${memoSet.updatedAt}:${memoSet.activeIndex}`;
+
   const buildShare = useCallback(async (board: Board, memoSet: MemoSet) => {
-    const key = `${memoSet.id}:${memoSet.updatedAt}`;
+    const key = shareKey(memoSet);
     const memo = memoSet.memos[memoSet.activeIndex] ?? memoSet.memos[0];
     const marks = (memo?.user ?? memoSet.imported).map(
       (u, i) => (memoSet.imported[i] || u) as Mark,
@@ -528,7 +531,7 @@ export default function App() {
 
   const prepareShare = useCallback(
     (board: Board, memoSet: MemoSet) => {
-      if (shareCache.current.has(`${memoSet.id}:${memoSet.updatedAt}`)) return;
+      if (shareCache.current.has(shareKey(memoSet))) return;
       void buildShare(board, memoSet);
     },
     [buildShare],
@@ -536,7 +539,7 @@ export default function App() {
 
   const share = useCallback(
     (board: Board, memoSet: MemoSet) => {
-      const entry = shareCache.current.get(`${memoSet.id}:${memoSet.updatedAt}`);
+      const entry = shareCache.current.get(shareKey(memoSet));
       if (!entry) {
         // まだ準備できていないときは作りながら待つ（リンクだけになることがある）
         setToast('共有の準備をしています');
@@ -544,6 +547,24 @@ export default function App() {
         return;
       }
       void shareLink(entry.url, memoSet.name, entry.image).then((message) => {
+        if (!message) return;
+        navigator.vibrate?.(8);
+        setToast(message);
+      });
+    },
+    [buildShare],
+  );
+
+  /** 盤面の画像だけを保存する */
+  const saveBoardImage = useCallback(
+    (board: Board, memoSet: MemoSet) => {
+      const image = shareCache.current.get(shareKey(memoSet))?.image;
+      if (!image) {
+        setToast('画像を準備しています');
+        void buildShare(board, memoSet);
+        return;
+      }
+      void saveImage(image).then((message) => {
         if (!message) return;
         navigator.vibrate?.(8);
         setToast(message);
@@ -599,6 +620,7 @@ export default function App() {
         onChange={handleChange}
         onRename={(memoName, boardName) => void rename(view.memoSet.id, memoName, boardName)}
         onShare={(memoSet) => share(view.board, memoSet)}
+        onSaveImage={(memoSet) => saveBoardImage(view.board, memoSet)}
       />
     );
   }
@@ -610,6 +632,7 @@ export default function App() {
         key={view.memoSet.id}
         board={view.board}
         initialMemoSet={view.memoSet}
+        onSaveImage={(memoSet) => saveBoardImage(view.board, memoSet)}
         onReset
         shared
         existingBoardName={existing?.label}

@@ -21,6 +21,7 @@ export function MemoSession({
   onRename,
   onSave,
   onShare,
+  onSaveImage,
   onReset,
   shared,
   existingBoardName,
@@ -34,6 +35,8 @@ export function MemoSession({
   /** 共有リンクから開いたものを自分の保存先に取り込む（保存ボタン） */
   onSave?: (memoSet: MemoSet, boardName: string, setName: string) => void;
   onShare?: (memoSet: MemoSet) => void;
+  /** 盤面の画像を保存する */
+  onSaveImage?: (memoSet: MemoSet) => void;
   onReset?: boolean;
   /** 共有リンクで開いた盤面 */
   shared?: boolean;
@@ -63,6 +66,7 @@ export function MemoSession({
         onEdit={onRename ? () => setEditing(true) : undefined}
         onSave={onSave ? () => setEditing(true) : undefined}
         onShare={onShare ? () => onShare(store.memoSet) : undefined}
+        onSaveImage={onSaveImage ? () => onSaveImage(store.memoSet) : undefined}
         onReset={onReset ? store.resetActive : undefined}
         shared={shared}
       />

@@ -43,3 +43,38 @@ function copy(url: string): Promise<string | null> {
     () => 'リンクをコピーできませんでした',
   );
 }
+
+/**
+ * 盤面の画像だけを保存させる。
+ * iOS には blob のダウンロードで写真に入れる手段が無いので、
+ * 画像だけを共有シートに渡して「写真に保存」を選んでもらう。
+ * 共有シートが使えない環境ではそのままダウンロードする。
+ */
+export function saveImage(image: File): Promise<string | null> {
+  if (navigator.canShare?.({ files: [image] })) {
+    return navigator.share({ files: [image] }).then(
+      () => null,
+      (e: unknown) => {
+        if (e instanceof DOMException && e.name === 'AbortError') return null;
+        return download(image);
+      },
+    );
+  }
+  return Promise.resolve(download(image));
+}
+
+function download(image: File): string | null {
+  try {
+    const url = URL.createObjectURL(image);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = image.name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 10_000);
+    return '画像を保存しました';
+  } catch {
+    return '画像を保存できませんでした';
+  }
+}

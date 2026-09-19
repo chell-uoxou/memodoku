@@ -186,6 +186,13 @@ export const BrushIcon = ({ size = 18 }: P) => (
   </svg>
 );
 
+export const DownloadIcon = ({ size = 18 }: P) => (
+  <svg {...base(size)}>
+    <path d="M12 3v11M8 10.5l4 4 4-4" />
+    <path d="M5 20h14" />
+  </svg>
+);
+
 export const CheckIcon = ({ size = 18 }: P) => (
   <svg {...base(size)}>
     <path d="m5 12.5 4.5 4.5L19 7" />

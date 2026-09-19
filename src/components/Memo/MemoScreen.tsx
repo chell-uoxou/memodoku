@@ -6,6 +6,7 @@ import { Scrubber } from '../Scrubber/Scrubber';
 import { IconButton } from '../ui';
 import {
   BackIcon,
+  DownloadIcon,
   EyeIcon,
   PencilIcon,
   EyeOffIcon,
@@ -30,6 +31,7 @@ export type MemoScreenProps = {
   /** 自分の保存先に取り込む（共有リンクから開いたとき） */
   onSave?: () => void;
   onShare?: () => void;
+  onSaveImage?: () => void;
   onReset?: () => void;
   /** 共有リンクで開いた盤面。ヘッダにその旨を出す */
   shared?: boolean;
@@ -46,6 +48,7 @@ export function MemoScreen({
   onEdit,
   onSave,
   onShare,
+  onSaveImage,
   onReset,
   shared,
   memoSet,
@@ -132,8 +135,13 @@ export function MemoScreen({
         >
           {active.showImported ? <EyeIcon size={16} /> : <EyeOffIcon size={16} />}
         </IconButton>
+        {onSaveImage && (
+          <IconButton onClick={onSaveImage} small title="盤面の画像を保存">
+            <DownloadIcon size={16} />
+          </IconButton>
+        )}
         {onShare && (
-          <IconButton onClick={onShare} small title="共有リンクをコピー">
+          <IconButton onClick={onShare} small title="画像とリンクを共有">
             <ShareIcon size={16} />
           </IconButton>
         )}
