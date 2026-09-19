@@ -2,8 +2,13 @@ import { flushSync } from 'react-dom';
 
 export type NavDirection = 'push' | 'pop';
 
+type ViewTransition = {
+  finished: Promise<void>;
+  updateCallbackDone: Promise<void>;
+};
+
 type WithViewTransition = Document & {
-  startViewTransition?: (callback: () => void) => { finished: Promise<void> };
+  startViewTransition?: (callback: () => void) => ViewTransition;
 };
 
 /**
@@ -13,22 +18,46 @@ type WithViewTransition = Document & {
  * `::view-transition-old(root)` / `::view-transition-new(root)` 側に書いてあり、
  * ここでは `html[data-nav]` を立てて向きを伝えるだけ。
  *
- * 非対応ブラウザと「視差効果を減らす」設定のときは、そのまま切り替える。
+ * 遷移は「タブが裏に回っている」「前の遷移がまだ動いている」などの理由で
+ * 中断されることがある（InvalidStateError）。中断されるとコールバックが
+ * 呼ばれないまま終わるので、**必ず update が一度は走る**ように組んである。
+ * 非対応ブラウザと「視差効果を減らす」設定のときも、そのまま切り替える。
  */
 export function navigate(direction: NavDirection, update: () => void) {
   const doc = document as WithViewTransition;
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const canAnimate =
+    typeof doc.startViewTransition === 'function' &&
+    !reduceMotion &&
+    document.visibilityState === 'visible';
 
-  if (reduceMotion || typeof doc.startViewTransition !== 'function') {
+  if (!canAnimate) {
     update();
     return;
   }
 
   const root = document.documentElement;
+  let ran = false;
+  const runOnce = () => {
+    if (ran) return;
+    ran = true;
+    update();
+  };
+  const cleanup = () => {
+    if (root.dataset.nav === direction) delete root.dataset.nav;
+  };
+
   root.dataset.nav = direction;
-  // startViewTransition は同期的に DOM が変わっている前提なので flushSync で確定させる
-  const transition = doc.startViewTransition(() => flushSync(update));
-  void transition.finished.finally(() => {
-    delete root.dataset.nav;
-  });
+  try {
+    // startViewTransition は同期的に DOM が変わっている前提なので flushSync で確定させる
+    const transition = doc.startViewTransition!(() => {
+      ran = true;
+      flushSync(update);
+    });
+    transition.updateCallbackDone.catch(runOnce);
+    transition.finished.catch(() => {}).finally(cleanup);
+  } catch {
+    runOnce();
+    cleanup();
+  }
 }

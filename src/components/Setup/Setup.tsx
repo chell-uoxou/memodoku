@@ -8,7 +8,6 @@ import {
   validateBoard,
 } from '../../model/board';
 import { violatingCats } from '../../model/rules';
-import { confirmDiscard } from '../../state/unsaved';
 import { Board as BoardView, type CellAction, type StrokePhase } from '../Board/Board';
 import { IconButton } from '../ui';
 import { BackIcon, BrushIcon, ImageIcon, RedoIcon, UndoIcon } from '../ui/Icons';
@@ -180,13 +179,7 @@ export function Setup({
   return (
     <div className={s.root}>
       <div className={s.top}>
-        <IconButton
-          onClick={() => {
-            if (!dirty || confirmDiscard('作成中の盤面を破棄しますか？')) onCancel();
-          }}
-          small
-          title="戻る"
-        >
+        <IconButton onClick={onCancel} small title="戻る">
           <BackIcon size={16} />
         </IconButton>
         <span className={s.title}>{input.imageUrl ? '読み取り結果を確認' : '盤面を作成'}</span>

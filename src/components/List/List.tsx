@@ -1,7 +1,6 @@
 import { useMemo, useRef, useState } from 'react';
 import type { Board, MemoSet } from '../../model/types';
 import { useStoredValue } from '../../state/settings';
-import { navigate } from '../../state/navigation';
 import { IconButton, Sheet, ui } from '../ui';
 import {
   BackIcon,
@@ -29,6 +28,9 @@ export type ListProps = {
   /** 長押しメニューを開いた時点で共有URLを作らせる（iOS のジェスチャ制限対策） */
   onPrepareShare: (id: string) => void;
   onBack: () => void;
+  /** 開いている盤面グループ。履歴と連動させるため親が持つ */
+  openBoardId: string | null;
+  onOpenBoard: (boardId: string | null) => void;
 };
 
 export function List({
@@ -41,13 +43,14 @@ export function List({
   onCopyLink,
   onPrepareShare,
   onBack,
+  openBoardId,
+  onOpenBoard,
 }: ListProps) {
   const [mode, setMode] = useStoredValue<'list' | 'tile'>('meowdoku-memo:listMode', 'list');
   const [grouped, setGrouped] = useStoredValue<'flat' | 'board'>(
     'meowdoku-memo:listGroup',
     'flat',
   );
-  const [openBoard, setOpenBoard] = useState<string | null>(null);
   const [menu, setMenu] = useState<MemoSet | null>(null);
   const [renaming, setRenaming] = useState<MemoSet | null>(null);
   const longPress = useRef<number | null>(null);
@@ -94,25 +97,23 @@ export function List({
   }
 
   const visible =
-    grouped === 'board' && openBoard ? (byBoard.get(openBoard) ?? []) : sorted;
+    grouped === 'board' && openBoardId ? (byBoard.get(openBoardId) ?? []) : sorted;
 
-  const showBoardFolders = grouped === 'board' && !openBoard;
+  const showBoardFolders = grouped === 'board' && !openBoardId;
 
   return (
     <div className={s.root}>
       <div className={s.top}>
         <IconButton
           small
-          onClick={() =>
-            openBoard ? navigate('pop', () => setOpenBoard(null)) : onBack()
-          }
+          onClick={() => (openBoardId ? onOpenBoard(null) : onBack())}
           title="戻る"
         >
           <BackIcon size={16} />
         </IconButton>
         <span className={s.title}>
-          {openBoard
-            ? (boards.get(openBoard)?.label ?? '盤面')
+          {openBoardId
+            ? (boards.get(openBoardId)?.label ?? '盤面')
             : grouped === 'board'
               ? '盤面一覧'
               : 'メモ一覧'}
@@ -122,7 +123,7 @@ export function List({
           className={s.groupToggle}
           data-on={grouped === 'board'}
           onClick={() => {
-            setOpenBoard(null);
+            onOpenBoard(null);
             setGrouped(grouped === 'flat' ? 'board' : 'flat');
           }}
         >
@@ -156,7 +157,7 @@ export function List({
                 <button
                   key={boardId}
                   className={s.row}
-                  onClick={() => navigate('push', () => setOpenBoard(boardId))}
+                  onClick={() => onOpenBoard(boardId)}
                 >
                   <Thumbnail board={board} marks={sets[0]?.memos[0]?.user} size={40} />
                   <span className={s.rowMain}>
@@ -171,7 +172,7 @@ export function List({
                 <button
                   key={boardId}
                   className={s.tile}
-                  onClick={() => navigate('push', () => setOpenBoard(boardId))}
+                  onClick={() => onOpenBoard(boardId)}
                 >
                   <Thumbnail board={board} marks={sets[0]?.memos[0]?.user} />
                   <span className={s.tileTitle}>{board.label || '名前なしの盤面'}</span>

@@ -5,22 +5,34 @@ import { cropToCanvas } from './load';
 export type LabelResult = { label: string | null; kind: BoardKind };
 
 const MIN_CONFIDENCE = 70;
+/**
+ * tesseract.js は言語データをネットワークから取りに行く。
+ * オフラインや回線が細いときに取り込み全体が止まらないよう、諦める時間を決めておく。
+ */
+const TIMEOUT_MS = 6000;
 
 /**
  * §5.5 レベル名の読み取り。tesseract.js は使うときだけ遅延ロードする。
  * どちらの形にもマッチしない・信頼度が低いときは名前を空にする（誤った名前を入れない）。
  */
 export async function readLabel(bmp: Bitmap, rect: Rect): Promise<LabelResult> {
+  const none: LabelResult = { label: null, kind: 'unknown' };
   try {
-    const { recognize } = await import('tesseract.js');
-    const canvas = cropToCanvas(bmp, rect);
-    const { data } = await recognize(canvas, 'eng', undefined);
-    const text = data.text.replace(/\s+/g, '');
-    if (data.confidence < MIN_CONFIDENCE) return { label: null, kind: 'unknown' };
-    return parseLabel(text);
+    return await Promise.race([
+      run(bmp, rect),
+      new Promise<LabelResult>((resolve) => setTimeout(() => resolve(none), TIMEOUT_MS)),
+    ]);
   } catch {
-    return { label: null, kind: 'unknown' };
+    return none;
   }
+}
+
+async function run(bmp: Bitmap, rect: Rect): Promise<LabelResult> {
+  const { recognize } = await import('tesseract.js');
+  const canvas = cropToCanvas(bmp, rect);
+  const { data } = await recognize(canvas, 'eng', undefined);
+  if (data.confidence < MIN_CONFIDENCE) return { label: null, kind: 'unknown' };
+  return parseLabel(data.text.replace(/\s+/g, ''));
 }
 
 export function parseLabel(text: string): LabelResult {
