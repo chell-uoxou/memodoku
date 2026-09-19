@@ -6,47 +6,67 @@ export function IconButton({
   onClick,
   disabled,
   small,
+  active,
   title,
 }: {
   children: ReactNode;
   onClick?: () => void;
   disabled?: boolean;
   small?: boolean;
+  /** トグルとして使うとき、有効なら色を反転させる */
+  active?: boolean;
   title?: string;
 }) {
   return (
     <button
-      className={`${s.iconBtn} ${small ? s.small : ''}`}
+      className={`${s.iconBtn} ${small ? s.small : ''} ${active ? s.active : ''}`}
       onClick={onClick}
       disabled={disabled}
       aria-label={title}
+      title={title}
     >
       {children}
     </button>
   );
 }
 
-export function Sheet({ children, onClose }: { children: ReactNode; onClose: () => void }) {
+export function Sheet({
+  children,
+  onClose,
+  title,
+}: {
+  children: ReactNode;
+  onClose: () => void;
+  title?: string;
+}) {
   return (
     <>
       <div className={s.backdrop} onPointerDown={onClose} />
-      <div className={s.sheet}>{children}</div>
+      <div className={s.sheet}>
+        {title && <div className={s.sheetTitle}>{title}</div>}
+        {children}
+      </div>
     </>
   );
 }
 
 export function ToggleRow({
   label,
+  hint,
   on,
   onToggle,
 }: {
   label: string;
+  hint?: string;
   on: boolean;
   onToggle: () => void;
 }) {
   return (
     <div className={s.row}>
-      <span>{label}</span>
+      <span className={s.rowText}>
+        <span>{label}</span>
+        {hint && <span className={s.rowHint}>{hint}</span>}
+      </span>
       <button className={s.switch} data-on={on} onClick={onToggle} aria-label={label}>
         <span className={s.knob} />
       </button>

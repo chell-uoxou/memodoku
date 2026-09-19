@@ -8,7 +8,7 @@ import {
   BackIcon,
   EyeIcon,
   EyeOffIcon,
-  GearIcon,
+  SettingsIcon,
   RedoIcon,
   SaveIcon,
   ShareIcon,
@@ -89,7 +89,7 @@ export function MemoScreen({
           </IconButton>
         )}
         <IconButton onClick={onOpenSettings} small title="設定">
-          <GearIcon size={16} />
+          <SettingsIcon size={16} />
         </IconButton>
         {onReset && (
           <button

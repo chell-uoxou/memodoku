@@ -2,7 +2,19 @@ import { useMemo, useRef, useState } from 'react';
 import type { Board, MemoSet } from '../../model/types';
 import { useStoredValue } from '../../state/settings';
 import { IconButton, Sheet, ui } from '../ui';
-import { BackIcon, FolderIcon, GridIcon, ImageIcon, ListIcon, PlusIcon } from '../ui/Icons';
+import {
+  BackIcon,
+  CopyIcon,
+  FolderIcon,
+  FolderOpenIcon,
+  GridIcon,
+  ImageIcon,
+  LinkIcon,
+  ListIcon,
+  PencilIcon,
+  PlusIcon,
+  TrashIcon,
+} from '../ui/Icons';
 import { Thumbnail } from './Thumbnail';
 import s from './List.module.css';
 
@@ -18,6 +30,7 @@ export type ListProps = {
   onDuplicate: (id: string) => void;
   onDelete: (id: string) => void;
   onCopyLink: (id: string) => void;
+  onBack: () => void;
 };
 
 export function List({
@@ -30,6 +43,7 @@ export function List({
   onDuplicate,
   onDelete,
   onCopyLink,
+  onBack,
 }: ListProps) {
   const [mode, setMode] = useStoredValue<'list' | 'tile'>('meowdoku-memo:listMode', 'list');
   const [grouped, setGrouped] = useStoredValue<'flat' | 'board'>(
@@ -89,37 +103,47 @@ export function List({
   return (
     <div className={s.root}>
       <div className={s.top}>
-        {openBoard ? (
-          <>
-            <IconButton small onClick={() => setOpenBoard(null)} title="戻る">
-              <BackIcon size={16} />
-            </IconButton>
-            <span className={s.title}>{boards.get(openBoard)?.label}</span>
-          </>
-        ) : (
-          <span className={s.spacer} />
-        )}
+        <IconButton
+          small
+          onClick={() => (openBoard ? setOpenBoard(null) : onBack())}
+          title="戻る"
+        >
+          <BackIcon size={16} />
+        </IconButton>
+        <span className={s.title}>
+          {openBoard ? (boards.get(openBoard)?.label ?? '盤面') : 'メモ一覧'}
+        </span>
         <span className={s.spacer} />
         <IconButton
           small
+          active={grouped === 'board'}
           onClick={() => {
             setOpenBoard(null);
             setGrouped(grouped === 'flat' ? 'board' : 'flat');
           }}
-          title="盤面グループ"
+          title={grouped === 'board' ? '盤面ごとの表示を解除' : '盤面ごとにまとめる'}
         >
-          <FolderIcon size={16} />
+          {grouped === 'board' ? <FolderOpenIcon size={16} /> : <FolderIcon size={16} />}
         </IconButton>
         <IconButton
           small
           onClick={() => setMode(mode === 'list' ? 'tile' : 'list')}
-          title="表示切替"
+          title={mode === 'list' ? 'サムネイル表示にする' : 'リスト表示にする'}
         >
           {mode === 'list' ? <GridIcon size={16} /> : <ListIcon size={16} />}
         </IconButton>
       </div>
 
       <div className={s.scroll}>
+        {!sorted.length && (
+          <div className={s.empty}>
+            <span>
+              まだメモがありません。
+              <br />
+              スクショを読み込むか、手動で盤面を作ってください。
+            </span>
+          </div>
+        )}
         {showBoardFolders ? (
           <div className={mode === 'list' ? s.list : s.grid}>
             {[...byBoard.entries()].map(([boardId, sets]) => {
@@ -129,15 +153,16 @@ export function List({
                 <button key={boardId} className={s.row} onClick={() => setOpenBoard(boardId)}>
                   <Thumbnail board={board} marks={sets[0]?.memos[0]?.user} size={40} />
                   <span className={s.rowMain}>
-                    <span className={s.rowTitle}>{board.label || '—'}</span>
+                    <span className={s.rowTitle}>{board.label || '名前なしの盤面'}</span>
+                    <span className={s.rowSub}>メモセット {sets.length} 件</span>
                   </span>
-                  <span className={s.count}>{sets.length}</span>
+                  <span className={s.chevron}>›</span>
                 </button>
               ) : (
                 <button key={boardId} className={s.tile} onClick={() => setOpenBoard(boardId)}>
                   <Thumbnail board={board} marks={sets[0]?.memos[0]?.user} />
-                  <span className={s.tileTitle}>{board.label || '—'}</span>
-                  <span className={s.tileSub}>{sets.length}</span>
+                  <span className={s.tileTitle}>{board.label || '名前なしの盤面'}</span>
+                  <span className={s.tileSub}>{sets.length} 件</span>
                 </button>
               );
             })}
@@ -151,18 +176,18 @@ export function List({
                 <button key={set.id} className={s.row} {...pressHandlers(set)}>
                   <Thumbnail board={board} marks={set.memos[0]?.user} size={40} />
                   <span className={s.rowMain}>
-                    <span className={s.rowTitle}>{board.label || '—'}</span>
+                    <span className={s.rowTitle}>{set.name}</span>
                     <span className={s.rowSub}>
-                      {set.name} · {set.memos.length}
+                      {board.label || '名前なしの盤面'} · メモ {set.memos.length} 枚
                     </span>
                   </span>
                 </button>
               ) : (
                 <button key={set.id} className={s.tile} {...pressHandlers(set)}>
                   <Thumbnail board={board} marks={set.memos[0]?.user} />
-                  <span className={s.tileTitle}>{board.label || '—'}</span>
+                  <span className={s.tileTitle}>{set.name}</span>
                   <span className={s.tileSub}>
-                    {set.name} · {set.memos.length}
+                    {board.label || '名前なしの盤面'} · {set.memos.length} 枚
                   </span>
                 </button>
               );
@@ -172,14 +197,10 @@ export function List({
       </div>
 
       {menu && !renaming && (
-        <Sheet onClose={() => setMenu(null)}>
-          <button
-            className={s.menuBtn}
-            onClick={() => {
-              setRenaming(menu);
-            }}
-          >
-            名前変更
+        <Sheet onClose={() => setMenu(null)} title={menu.name}>
+          <button className={s.menuBtn} onClick={() => setRenaming(menu)}>
+            <PencilIcon size={17} />
+            メモセット名を変更
           </button>
           <button
             className={s.menuBtn}
@@ -188,6 +209,7 @@ export function List({
               setMenu(null);
             }}
           >
+            <CopyIcon size={17} />
             複製
           </button>
           <button
@@ -197,6 +219,7 @@ export function List({
               setMenu(null);
             }}
           >
+            <LinkIcon size={17} />
             共有リンクをコピー
           </button>
           <button
@@ -206,6 +229,7 @@ export function List({
               setMenu(null);
             }}
           >
+            <TrashIcon size={17} />
             削除
           </button>
         </Sheet>
@@ -242,11 +266,13 @@ function RenameSheet({
 }) {
   const [value, setValue] = useState(initial);
   return (
-    <Sheet onClose={onClose}>
+    <Sheet onClose={onClose} title="メモセット名を変更">
+      <div className={s.fieldLabel}>メモセット名</div>
       <input
         className={ui.field}
         value={value}
         autoFocus
+        placeholder="例: 2026/09/19 の1回目"
         onChange={(e) => setValue(e.target.value)}
       />
       <button className={ui.primary} onClick={() => onDone(value.trim() || initial)}>
@@ -267,10 +293,10 @@ function Fab({ onNew, onImport }: { onNew: () => void; onImport: () => void }) {
         gap: 10,
       }}
     >
-      <IconButton onClick={onNew} title="新規">
+      <IconButton onClick={onNew} title="手動で盤面を作成">
         <PlusIcon />
       </IconButton>
-      <IconButton onClick={onImport} title="スクショから">
+      <IconButton onClick={onImport} title="スクショから盤面を読み込み">
         <ImageIcon />
       </IconButton>
     </div>

@@ -3,6 +3,7 @@ import type { Board, Marks, MemoSet } from './model/types';
 import { blankSetup, Setup, type SetupInput } from './components/Setup/Setup';
 import { MemoSession } from './components/Memo/MemoSession';
 import { List } from './components/List/List';
+import { Home } from './components/Home/Home';
 import { formatToday, newId, newMemoSet } from './state/memoSet';
 import { suppressBrowserGestures } from './gestures';
 import * as db from './db/db';
@@ -12,13 +13,14 @@ import { blankSetup as blank } from './components/Setup/Setup';
 import './styles/global.css';
 
 type View =
+  | { kind: 'home' }
   | { kind: 'list' }
   | { kind: 'setup'; input: SetupInput }
   | { kind: 'memo'; board: Board; memoSet: MemoSet; saved: boolean }
   | { kind: 'share'; board: Board; memoSet: MemoSet };
 
 export default function App() {
-  const [view, setView] = useState<View>({ kind: 'list' });
+  const [view, setView] = useState<View>({ kind: 'home' });
   const [boards, setBoards] = useState<Map<string, Board>>(new Map());
   const [memoSets, setMemoSets] = useState<MemoSet[]>([]);
   const autosave = useRef<number | null>(null);
@@ -123,7 +125,7 @@ export default function App() {
     return (
       <Setup
         input={view.input}
-        onCancel={() => setView({ kind: 'list' })}
+        onCancel={() => setView({ kind: 'home' })}
         onDone={(board: Board, imported: Marks) => {
           const existing = boards.get(board.id);
           const merged = existing ? { ...board, label: existing.label } : board;
@@ -178,13 +180,27 @@ export default function App() {
         existingBoardName={existing?.label}
         onBack={() => {
           history.replaceState(null, '', location.pathname);
-          setView({ kind: 'list' });
+          setView({ kind: 'home' });
         }}
         onSave={(memoSet, boardName, setName) => {
           history.replaceState(null, '', location.pathname);
           void saveNow(view.board, memoSet, boardName, setName);
         }}
       />
+    );
+  }
+
+  if (view.kind === 'home') {
+    return (
+      <>
+        <ImagePicker inputRef={fileInput} onPick={handleImage} />
+        <Home
+          memoSetCount={memoSets.length}
+          onImport={() => fileInput.current?.click()}
+          onManual={() => setView({ kind: 'setup', input: blankSetup(9) })}
+          onOpenList={() => setView({ kind: 'list' })}
+        />
+      </>
     );
   }
 
@@ -232,7 +248,30 @@ export default function App() {
       }}
       onDelete={(id) => void db.deleteMemoSetAndOrphanBoard(id).then(refresh)}
       onCopyLink={(id) => void copyLink(id)}
+      onBack={() => setView({ kind: 'home' })}
     />
     </>
+  );
+}
+
+function ImagePicker({
+  inputRef,
+  onPick,
+}: {
+  inputRef: React.RefObject<HTMLInputElement | null>;
+  onPick: (blob: Blob) => void;
+}) {
+  return (
+    <input
+      ref={inputRef}
+      type="file"
+      accept="image/*"
+      style={{ display: 'none' }}
+      onChange={(e) => {
+        const file = e.target.files?.[0];
+        e.target.value = '';
+        if (file) onPick(file);
+      }}
+    />
   );
 }

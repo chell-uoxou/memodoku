@@ -32,10 +32,6 @@
   display: block;
 }
 
-.cat {
-  background: var(--accent) !important;
-}
-
 .imported {
   opacity: 0.45;
 }
@@ -49,7 +45,7 @@
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  border: 1.5px solid var(--danger);
+  border: 2.5px solid var(--danger);
   pointer-events: none;
 }
 

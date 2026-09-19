@@ -24,8 +24,8 @@ export type BoardProps = {
   /** false にすると入力を受け付けない（サムネイル等） */
   interactive?: boolean;
   onStroke?: (actions: CellAction[], phase: StrokePhase) => void;
-  /** 補正UI用。セルを長押しではなくタップしたときに呼ばれる（onStroke の代わり） */
-  onCellPaint?: (i: number) => void;
+  /** 補正UI用。セルをなぞったときに呼ばれる（onStroke の代わり） */
+  onCellPaint?: (i: number, phase: StrokePhase) => void;
   onCellLongPress?: (i: number) => void;
 };
 
@@ -109,7 +109,7 @@ export function Board({
 
     if (onCellPaint) {
       gesture.current = { mode: 'paint', visited: new Set([i]), last: { x: e.clientX, y: e.clientY } };
-      onCellPaint(i);
+      onCellPaint(i, 'start');
       return;
     }
 
@@ -179,7 +179,7 @@ export function Board({
 
   const handleCell = (g: Gesture, i: number) => {
     if (onCellPaint) {
-      onCellPaint(i);
+      onCellPaint(i, 'extend');
       return;
     }
     if (g.mode === 'none' || !onStroke) return;
@@ -236,7 +236,6 @@ export function Board({
         const mark: Mark = showImportedHere ? im : uv;
         const [r, c] = rc(i, n);
         const cls = [s.cell];
-        if (mark === CAT) cls.push(s.cat);
         if (region === null || region === undefined) cls.push(s.unknown);
         if (violations?.has(i)) cls.push(s.violation);
         if (highlight !== null && (r === hlRow || c === hlCol)) cls.push(s.highlight);

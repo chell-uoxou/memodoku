@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { Sheet, ui } from '../ui';
-import { CheckIcon } from '../ui/Icons';
 
 export function SaveSheet({
   boardName,
@@ -11,7 +10,7 @@ export function SaveSheet({
 }: {
   boardName: string;
   setName: string;
-  /** 同じ Board.id が保存済みかどうか */
+  /** 同じ Board.id が既に保存されているか */
   existing: boolean;
   onClose: () => void;
   onSave: (boardName: string, setName: string) => void;
@@ -20,30 +19,25 @@ export function SaveSheet({
   const [name, setName_] = useState(setName);
 
   return (
-    <Sheet onClose={onClose}>
+    <Sheet onClose={onClose} title="保存">
+      <div className={ui.fieldLabel}>
+        盤面名
+        {existing && <span className={ui.fieldNote}>保存済みの盤面と同じ形です</span>}
+      </div>
       <input
         className={ui.field}
         value={board}
         autoFocus={!boardName}
-        placeholder=""
+        placeholder="例: Level 62 / Daily 9/19"
         onChange={(e) => setBoard(e.target.value)}
       />
-      {existing && (
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'flex-end',
-            color: 'var(--ink-weak)',
-            padding: '4px 4px 0',
-          }}
-        >
-          <CheckIcon size={14} />
-        </div>
-      )}
-      <div style={{ height: 10 }} />
+      <div className={ui.fieldLabel} style={{ paddingTop: 14 }}>
+        メモセット名
+      </div>
       <input
         className={ui.field}
         value={name}
+        placeholder="例: 2026/09/19"
         onChange={(e) => setName_(e.target.value)}
       />
       <button className={ui.primary} onClick={() => onSave(board.trim(), name.trim())}>

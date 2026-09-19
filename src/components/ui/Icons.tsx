@@ -1,3 +1,5 @@
+import { CAT_PATH } from './catPath';
+
 type P = { size?: number };
 
 const base = (size: number) => ({
@@ -40,10 +42,12 @@ export const EyeOffIcon = ({ size = 18 }: P) => (
   </svg>
 );
 
-export const GearIcon = ({ size = 18 }: P) => (
+/** 設定。トグルが並ぶシートを開くのでスライダーの形にしている */
+export const SettingsIcon = ({ size = 18 }: P) => (
   <svg {...base(size)}>
-    <circle cx="12" cy="12" r="3.2" />
-    <path d="M12 2.6v2.2M12 19.2v2.2M21.4 12h-2.2M4.8 12H2.6M18.6 5.4l-1.6 1.6M7 17l-1.6 1.6M18.6 18.6 17 17M7 7 5.4 5.4" />
+    <path d="M4 7h10M18 7h2M4 17h2M10 17h10" />
+    <circle cx="16" cy="7" r="2.3" />
+    <circle cx="8" cy="17" r="2.3" />
   </svg>
 );
 
@@ -92,6 +96,55 @@ export const GridIcon = ({ size = 18 }: P) => (
 export const FolderIcon = ({ size = 18 }: P) => (
   <svg {...base(size)}>
     <path d="M3 7a2 2 0 0 1 2-2h4l2 2.5h8a2 2 0 0 1 2 2V17a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+  </svg>
+);
+
+/** 盤面グループ表示が有効なときのアイコン（開いたフォルダ） */
+export const FolderOpenIcon = ({ size = 18 }: P) => (
+  <svg {...base(size)}>
+    <path d="M3 18V7a2 2 0 0 1 2-2h4l2 2.5h8a2 2 0 0 1 2 2V11" />
+    <path d="m3 18 2.6-6.2A2 2 0 0 1 7.4 10.5H22l-2.6 6.2a2 2 0 0 1-1.8 1.3H5a2 2 0 0 1-2-2z" />
+  </svg>
+);
+
+/** ホーム画面などで使う猫のマーク */
+export const CatMarkIcon = ({ size = 18 }: P) => (
+  <svg width={size} height={size} viewBox="0 0 100 100" fill="currentColor" aria-hidden>
+    <path d={CAT_PATH} />
+  </svg>
+);
+
+export const ClockIcon = ({ size = 18 }: P) => (
+  <svg {...base(size)}>
+    <circle cx="12" cy="12" r="9" />
+    <path d="M12 7v5.2l3.2 2" />
+  </svg>
+);
+
+export const PencilIcon = ({ size = 18 }: P) => (
+  <svg {...base(size)}>
+    <path d="M4 20h4L19.5 8.5a2.1 2.1 0 0 0-3-3L5 17z" />
+    <path d="m14.5 6.5 3 3" />
+  </svg>
+);
+
+export const TrashIcon = ({ size = 18 }: P) => (
+  <svg {...base(size)}>
+    <path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13" />
+  </svg>
+);
+
+export const CopyIcon = ({ size = 18 }: P) => (
+  <svg {...base(size)}>
+    <rect x="9" y="9" width="11" height="11" rx="2.5" />
+    <path d="M15 5.5A2.5 2.5 0 0 0 12.5 4H6a2 2 0 0 0-2 2v6.5A2.5 2.5 0 0 0 6.5 15" />
+  </svg>
+);
+
+export const LinkIcon = ({ size = 18 }: P) => (
+  <svg {...base(size)}>
+    <path d="M10.5 13.5a4 4 0 0 0 5.7 0l2.6-2.6a4 4 0 0 0-5.7-5.7l-1.3 1.3" />
+    <path d="M13.5 10.5a4 4 0 0 0-5.7 0l-2.6 2.6a4 4 0 1 0 5.7 5.7l1.3-1.3" />
   </svg>
 );
 
