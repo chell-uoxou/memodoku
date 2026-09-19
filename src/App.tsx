@@ -413,6 +413,14 @@ export default function App() {
     [boards, refresh, push, nextName],
   );
 
+  /** 今開いている盤面が消えてしまった場合だけ、1つ戻る */
+  const leaveIfBoardGone = useCallback(async () => {
+    const top = stackRef.current[stackRef.current.length - 1];
+    if (top.kind !== 'list' || !top.boardId) return;
+    if (await db.getBoard(top.boardId)) return;
+    await back();
+  }, [back]);
+
   /**
    * 盤面をもとに新しい盤面を作る。
    * Board.id は領域の形から作るハッシュなので、そのまま複製しても同じ盤面に戻ってしまう。
@@ -450,9 +458,19 @@ export default function App() {
     async (boardId: string) => {
       await db.deleteBoardWithMemoSets(boardId);
       await refresh();
-      back();
+      await leaveIfBoardGone();
     },
-    [refresh, back],
+    [refresh, leaveIfBoardGone],
+  );
+
+  const deleteMemo = useCallback(
+    async (id: string) => {
+      await db.deleteMemoSetAndOrphanBoard(id);
+      await refresh();
+      // 最後の1件を消すと盤面ごと消えるので、その盤面を開いていたら一覧に戻す
+      await leaveIfBoardGone();
+    },
+    [refresh, leaveIfBoardGone],
   );
 
   /** 盤面名とメモ名の変更 */
@@ -606,7 +624,7 @@ export default function App() {
       }}
       onRename={(id, memoName, boardName) => void rename(id, memoName, boardName)}
       onDuplicate={(id) => void duplicate(id)}
-      onDelete={(id) => void db.deleteMemoSetAndOrphanBoard(id).then(refresh)}
+      onDelete={(id) => void deleteMemo(id)}
       onCopyLink={copyLink}
       confirm={confirm}
       onPrepareShare={(id) => {
