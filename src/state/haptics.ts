@@ -80,11 +80,11 @@ if (typeof document !== 'undefined') {
 function readInitial(): boolean {
   try {
     const raw = localStorage.getItem(SETTINGS_KEY);
-    if (!raw) return true; // 既定はON
+    if (!raw) return false; // 既定はOFF
     const parsed = JSON.parse(raw) as { haptics?: boolean };
-    return parsed.haptics ?? true;
+    return parsed.haptics ?? false;
   } catch {
-    return true;
+    return false;
   }
 }
 

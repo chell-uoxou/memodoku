@@ -1,4 +1,4 @@
-import { Sheet, ToggleRow, ui } from '../ui';
+import { Sheet, ToggleRow } from '../ui';
 import type { Settings } from '../../state/settings';
 import { haptics } from '../../state/haptics';
 
@@ -33,20 +33,14 @@ export function SettingsSheet({
       />
       <ToggleRow
         label="触覚フィードバック"
-        hint="印を置いたときやメモを切り替えたときに短く震える"
+        badge="ベータ"
+        hint="印を置いたときやメモを切り替えたときに短く震える。端末によっては鳴らない"
         on={settings.haptics}
         onToggle={() => {
-          // 切るときは鳴らさない
+          // 入れたときだけ、どんな手応えか一度鳴らす
           if (!settings.haptics) haptics.test();
           onToggle('haptics');
         }}
-        action={
-          settings.haptics ? (
-            <button className={ui.smallAction} onClick={() => haptics.test()}>
-              試す
-            </button>
-          ) : null
-        }
       />
       <ToggleRow
         label="領域の境界線"

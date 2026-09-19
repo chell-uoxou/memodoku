@@ -9,13 +9,13 @@ export type Settings = {
   haptics: boolean;
 };
 
-/** §7.4 のトグルは全て既定 OFF。触覚だけは既定 ON にしている */
+/** §7.4 のとおり、トグルは全て既定 OFF */
 export const DEFAULT_SETTINGS: Settings = {
   autoExclude: false,
   showViolations: false,
   rowColHighlight: false,
   regionBoundaries: false,
-  haptics: true,
+  haptics: false,
 };
 
 /** 保存済みの設定を引き継ぐため、サービス名を変えたあとも旧いキーのまま使う */

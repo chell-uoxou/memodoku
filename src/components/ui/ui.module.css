@@ -309,13 +309,19 @@
   background: var(--danger);
 }
 
-.smallAction {
+.rowLabel {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.badge {
   flex: none;
-  height: 28px;
-  padding: 0 12px;
-  border-radius: 14px;
-  background: var(--bg);
+  border-radius: 999px;
+  background: var(--line);
   color: var(--ink-weak);
-  font-size: 12.5px;
-  white-space: nowrap;
+  padding: 2px 8px;
+  font-size: 10.5px;
+  line-height: 1.5;
+  letter-spacing: 0.02em;
 }

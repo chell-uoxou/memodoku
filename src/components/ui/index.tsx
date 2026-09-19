@@ -62,24 +62,26 @@ export function Sheet({
 export function ToggleRow({
   label,
   hint,
+  badge,
   on,
   onToggle,
-  action,
 }: {
   label: string;
   hint?: string;
+  /** 名前の横に出す小さなラベル（「ベータ」など） */
+  badge?: string;
   on: boolean;
   onToggle: () => void;
-  /** トグルの手前に置く小さなボタン（動作確認用など） */
-  action?: ReactNode;
 }) {
   return (
     <div className={s.row}>
       <span className={s.rowText}>
-        <span>{label}</span>
+        <span className={s.rowLabel}>
+          {label}
+          {badge && <span className={s.badge}>{badge}</span>}
+        </span>
         {hint && <span className={s.rowHint}>{hint}</span>}
       </span>
-      {action}
       <button className={s.switch} data-on={on} onClick={onToggle} aria-label={label}>
         <span className={s.knob} />
       </button>
