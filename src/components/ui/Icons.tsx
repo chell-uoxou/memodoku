@@ -78,9 +78,20 @@ export const ImageIcon = ({ size = 18 }: P) => (
   </svg>
 );
 
+/** リスト表示。ハンバーガーメニューと区別できるよう行頭にマークを置く */
 export const ListIcon = ({ size = 18 }: P) => (
+  <svg {...base(size)} strokeWidth={1.9}>
+    <rect x="3" y="4.5" width="4" height="4" rx="1.2" />
+    <rect x="3" y="15.5" width="4" height="4" rx="1.2" />
+    <path d="M10.5 6.5H21M10.5 17.5H21" />
+  </svg>
+);
+
+export const MoreIcon = ({ size = 18 }: P) => (
   <svg {...base(size)}>
-    <path d="M4 6h16M4 12h16M4 18h16" />
+    <circle cx="5.5" cy="12" r="1.4" fill="currentColor" stroke="none" />
+    <circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none" />
+    <circle cx="18.5" cy="12" r="1.4" fill="currentColor" stroke="none" />
   </svg>
 );
 

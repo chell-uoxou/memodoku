@@ -43,12 +43,34 @@
   background: var(--card);
   border-radius: 16px;
   box-shadow: var(--shadow);
-  padding: 12px 14px;
+  padding: 10px 10px 10px 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.rowOpen {
+  flex: 1;
+  min-width: 0;
   display: flex;
   align-items: center;
   gap: 12px;
   text-align: left;
-  width: 100%;
+  padding: 2px 0;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: none;
+}
+
+.actions button {
+  box-shadow: none;
+  background: transparent;
+  color: var(--ink-weak);
 }
 
 .rowMain {
@@ -90,7 +112,30 @@
   flex-direction: column;
   gap: 6px;
   align-items: stretch;
+}
+
+.tileOpen {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  align-items: stretch;
   text-align: left;
+}
+
+.tileActions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid var(--line);
+  padding-top: 4px;
+}
+
+.tileActions button {
+  box-shadow: none;
+  background: transparent;
+  color: var(--ink-weak);
+  width: 28px;
+  height: 28px;
 }
 
 .tile svg {
@@ -184,22 +229,6 @@
   place-items: center;
 }
 
-.groupToggle {
-  flex: none;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  height: 32px;
-  padding: 0 12px 0 10px;
-  border-radius: 16px;
-  background: var(--card);
-  box-shadow: var(--shadow);
-  font-size: 12.5px;
-  color: var(--ink-weak);
-  white-space: nowrap;
-}
-
-.groupToggle[data-on='true'] {
-  background: var(--accent);
-  color: #fff;
+.danger {
+  color: var(--danger);
 }

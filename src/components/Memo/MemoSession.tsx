@@ -11,28 +11,29 @@ export function MemoSession({
   initialMemoSet,
   onBack,
   onChange,
+  onRename,
   onSave,
   onShare,
   onReset,
-  saved,
   existingBoardName,
 }: {
   board: Board;
   initialMemoSet: MemoSet;
   onBack: () => void;
   onChange?: (memoSet: MemoSet) => void;
-  /** 保存シートの完了。未指定なら保存ボタンを出さない */
+  /** 保存済みのメモの名前を変える（鉛筆ボタン） */
+  onRename?: (memoName: string, boardName: string) => void;
+  /** 共有リンクから開いたものを自分の保存先に取り込む（保存ボタン） */
   onSave?: (memoSet: MemoSet, boardName: string, setName: string) => void;
   onShare?: (memoSet: MemoSet) => void;
   onReset?: boolean;
-  saved?: boolean;
-  /** 同じ Board.id が保存済みならその名前 */
+  /** 同じ形の盤面が保存済みならその名前 */
   existingBoardName?: string;
 }) {
   const store = useMemoSet(initialMemoSet, board.n, board.regions);
   const { settings, toggle } = useSettings();
   const [sheet, setSheet] = useState(false);
-  const [saving, setSaving] = useState(false);
+  const [editing, setEditing] = useState(false);
 
   const changeRef = useRef(onChange);
   changeRef.current = onChange;
@@ -49,23 +50,25 @@ export function MemoSession({
         settings={settings}
         onBack={onBack}
         onOpenSettings={() => setSheet(true)}
-        onSave={onSave ? () => setSaving(true) : undefined}
+        onEdit={onRename ? () => setEditing(true) : undefined}
+        onSave={onSave ? () => setEditing(true) : undefined}
         onShare={onShare ? () => onShare(store.memoSet) : undefined}
         onReset={onReset ? store.resetActive : undefined}
-        saved={saved}
       />
       {sheet && (
         <SettingsSheet settings={settings} onToggle={toggle} onClose={() => setSheet(false)} />
       )}
-      {saving && onSave && (
+      {editing && (
         <SaveSheet
+          title={onSave ? '保存' : '名前を変更'}
           boardName={existingBoardName ?? board.label}
           setName={store.memoSet.name}
           existing={existingBoardName !== undefined}
-          onClose={() => setSaving(false)}
-          onSave={(boardName, setName) => {
-            setSaving(false);
-            onSave(store.memoSet, boardName, setName);
+          onClose={() => setEditing(false)}
+          onSubmit={(boardName, setName) => {
+            setEditing(false);
+            if (onSave) onSave(store.memoSet, boardName, setName);
+            else onRename?.(setName, boardName);
           }}
         />
       )}

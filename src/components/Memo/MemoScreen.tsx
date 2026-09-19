@@ -7,6 +7,7 @@ import { IconButton } from '../ui';
 import {
   BackIcon,
   EyeIcon,
+  PencilIcon,
   EyeOffIcon,
   SettingsIcon,
   RedoIcon,
@@ -23,10 +24,12 @@ export type MemoScreenProps = {
   settings: Settings;
   onBack: () => void;
   onOpenSettings: () => void;
+  /** 名前を変更する（保存済みのメモ） */
+  onEdit?: () => void;
+  /** 自分の保存先に取り込む（共有リンクから開いたとき） */
   onSave?: () => void;
   onShare?: () => void;
   onReset?: () => void;
-  saved?: boolean;
   /** MemoSet は表示用（store.memoSet と同じ） */
   memoSet: MemoSet;
 };
@@ -37,10 +40,10 @@ export function MemoScreen({
   settings,
   onBack,
   onOpenSettings,
+  onEdit,
   onSave,
   onShare,
   onReset,
-  saved,
   memoSet,
 }: MemoScreenProps) {
   const { active } = store;
@@ -79,7 +82,12 @@ export function MemoScreen({
             {memoSet.activeIndex + 1}/{memoSet.memos.length}枚
           </span>
         </span>
-        {!saved && onSave && (
+        {onEdit && (
+          <IconButton onClick={onEdit} small title="名前を変更">
+            <PencilIcon size={16} />
+          </IconButton>
+        )}
+        {onSave && (
           <button className={s.save} onClick={onSave}>
             保存
           </button>

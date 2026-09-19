@@ -4,7 +4,7 @@ import { blankSetup, Setup, type SetupInput } from './components/Setup/Setup';
 import { MemoSession } from './components/Memo/MemoSession';
 import { List } from './components/List/List';
 import { Home } from './components/Home/Home';
-import { formatToday, newId, newMemoSet } from './state/memoSet';
+import { newId, newMemoSet } from './state/memoSet';
 import { suppressBrowserGestures } from './gestures';
 import * as db from './db/db';
 import { decodeShare, encodeShare, shareUrl } from './share/codec';
@@ -21,9 +21,9 @@ import './styles/global.css';
 
 type View =
   | { kind: 'home' }
-  | { kind: 'list'; boardId: string | null }
+  | { kind: 'list' }
   | { kind: 'setup'; input: SetupInput; id: string }
-  | { kind: 'memo'; board: Board; memoSet: MemoSet; saved: boolean }
+  | { kind: 'memo'; board: Board; memoSet: MemoSet }
   | { kind: 'share'; board: Board; memoSet: MemoSet };
 
 /** 画面から、URL に載せるルートを取り出す */
@@ -32,7 +32,7 @@ function routeOf(view: View): Route {
     case 'home':
       return { kind: 'home' };
     case 'list':
-      return view.boardId ? { kind: 'board', boardId: view.boardId } : { kind: 'list' };
+      return { kind: 'list' };
     case 'setup':
       return { kind: 'setup' };
     case 'memo':
@@ -67,9 +67,6 @@ export default function App() {
 
   /** 今の画面を離れてよいか。未保存なら確認する */
   const canLeave = useCallback((current: View) => {
-    if (current.kind === 'memo' && !current.saved) {
-      return confirmDiscard('このメモはまだ保存されていません。破棄しますか？');
-    }
     if (current.kind === 'setup' && setupDirtyRef.current) {
       return confirmDiscard('作成中の盤面を破棄しますか？');
     }
@@ -113,9 +110,7 @@ export default function App() {
   }, [canLeave]);
 
   // 未保存の変更があるあいだはタブを閉じる前に確認する
-  useBeforeUnload(
-    view.kind === 'memo' ? !view.saved : view.kind === 'setup' ? setupDirty : false,
-  );
+  useBeforeUnload(view.kind === 'setup' && setupDirty);
 
   useEffect(suppressBrowserGestures, []);
 
@@ -148,18 +143,12 @@ export default function App() {
 
       // 深い URL で開かれたときは、そこまでの履歴を積み直して戻れるようにする
       const restored: View[] = [{ kind: 'home' }];
-      if (route.kind === 'list') restored.push({ kind: 'list', boardId: null });
-      if (route.kind === 'board') {
-        restored.push({ kind: 'list', boardId: null });
-        if (boardMap.has(route.boardId)) {
-          restored.push({ kind: 'list', boardId: route.boardId });
-        }
-      }
+      if (route.kind === 'list') restored.push({ kind: 'list' });
       if (route.kind === 'memo') {
         const set = sets.find((m) => m.id === route.memoSetId);
         const board = set && boardMap.get(set.boardId);
-        restored.push({ kind: 'list', boardId: null });
-        if (set && board) restored.push({ kind: 'memo', board, memoSet: set, saved: true });
+        restored.push({ kind: 'list' });
+        if (set && board) restored.push({ kind: 'memo', board, memoSet: set });
       }
 
       if (!alive) return;
@@ -294,16 +283,87 @@ export default function App() {
     };
   }, []);
 
-  const saveNow = useCallback(
+  /**
+   * 盤面の確認が終わった時点で保存してメモ画面へ。
+   * 同じ形の盤面（Board.id が一致）が既にあれば、その記録にそのまま結びつける。
+   * 色や名前は保存済みのものを正とし、名前を入力し直したときだけ上書きする。
+   */
+  const saveAndOpen = useCallback(
+    async (board: Board, imported: Marks) => {
+      const existing = boards.get(board.id);
+      const merged: Board = existing
+        ? { ...existing, label: board.label || existing.label }
+        : board;
+      const set = newMemoSet(merged, imported);
+      await db.putBoard(merged);
+      await db.putMemoSet(set);
+      await refresh();
+      // 確認画面には戻らないので履歴も差し替える
+      replace({ kind: 'memo', board: merged, memoSet: set });
+    },
+    [boards, refresh, replace],
+  );
+
+  /** 共有リンクから受け取ったものを自分の保存先に取り込む */
+  const importShared = useCallback(
     async (board: Board, memoSet: MemoSet, boardName: string, setName: string) => {
-      const next: Board = { ...board, label: boardName };
+      const existing = boards.get(board.id);
+      const merged: Board = existing
+        ? { ...existing, label: boardName || existing.label }
+        : { ...board, label: boardName };
       const nextSet: MemoSet = { ...memoSet, name: setName, updatedAt: Date.now() };
-      await db.putBoard(next);
+      await db.putBoard(merged);
       await db.putMemoSet(nextSet);
       await refresh();
-      replace({ kind: 'memo', board: next, memoSet: nextSet, saved: true });
+      replace({ kind: 'memo', board: merged, memoSet: nextSet });
     },
-    [refresh],
+    [boards, refresh, replace],
+  );
+
+  /** 複製してそのまま開く */
+  const duplicate = useCallback(
+    async (id: string) => {
+      const set = memoSets.find((m) => m.id === id);
+      const board = set && boards.get(set.boardId);
+      if (!set || !board) return;
+      const now = Date.now();
+      const copy: MemoSet = {
+        ...set,
+        id: newId(),
+        name: `${set.name} のコピー`,
+        memos: set.memos.map((m) => ({ ...m, id: newId(), user: m.user.slice() as Marks })),
+        createdAt: now,
+        updatedAt: now,
+      };
+      await db.putMemoSet(copy);
+      await refresh();
+      push({ kind: 'memo', board, memoSet: copy });
+    },
+    [memoSets, boards, refresh, push],
+  );
+
+  /** 盤面名とメモ名の変更 */
+  const rename = useCallback(
+    async (id: string, memoName: string, boardName: string) => {
+      const set = memoSets.find((m) => m.id === id);
+      if (!set) return;
+      const board = boards.get(set.boardId);
+      await db.putMemoSet({ ...set, name: memoName, updatedAt: Date.now() });
+      if (board && board.label !== boardName) await db.putBoard({ ...board, label: boardName });
+      await refresh();
+      setStack((prev) =>
+        prev.map((v) =>
+          v.kind === 'memo' && v.memoSet.id === id
+            ? {
+                ...v,
+                memoSet: { ...v.memoSet, name: memoName },
+                board: board ? { ...board, label: boardName } : v.board,
+              }
+            : v,
+        ),
+      );
+    },
+    [memoSets, boards, refresh],
   );
 
   /**
@@ -370,34 +430,21 @@ export default function App() {
         }}
         onDone={(board: Board, imported: Marks) => {
           dropImage();
-          const existing = boards.get(board.id);
-          const merged = existing ? { ...board, label: existing.label } : board;
-          // 盤面の確認画面には戻らないので、履歴も差し替える
-          replace({
-            kind: 'memo',
-            board: merged,
-            memoSet: newMemoSet(merged, imported),
-            saved: false,
-          });
+          void saveAndOpen(board, imported);
         }}
       />
     );
   }
 
   if (view.kind === 'memo') {
-    const existing = boards.get(view.board.id);
     return (
       <MemoSession
         key={view.memoSet.id}
         board={view.board}
         initialMemoSet={view.memoSet}
-        saved={view.saved}
-        existingBoardName={existing?.label}
         onBack={back}
         onChange={handleChange}
-        onSave={(memoSet, boardName, setName) =>
-          void saveNow(view.board, memoSet, boardName, setName)
-        }
+        onRename={(memoName, boardName) => void rename(view.memoSet.id, memoName, boardName)}
         onShare={(memoSet) => share(view.board, memoSet)}
       />
     );
@@ -410,7 +457,6 @@ export default function App() {
         key={view.memoSet.id}
         board={view.board}
         initialMemoSet={view.memoSet}
-        saved={false}
         onReset
         existingBoardName={existing?.label}
         onBack={() => {
@@ -418,8 +464,8 @@ export default function App() {
           navigate('pop', () => setStack([{ kind: 'home' }]));
         }}
         onSave={(memoSet, boardName, setName) => {
-          history.replaceState(null, '', location.pathname);
-          void saveNow(view.board, memoSet, boardName, setName);
+          history.replaceState({ depth: 1 }, '', location.pathname);
+          void importShared(view.board, memoSet, boardName, setName);
         }}
       />
     );
@@ -432,7 +478,7 @@ export default function App() {
         onImport={() => fileInput.current?.click()}
         onPaste={() => void handlePaste()}
         onManual={() => push({ kind: 'setup', input: blankSetup(9), id: newId() })}
-        onOpenList={() => push({ kind: 'list', boardId: null })}
+        onOpenList={() => push({ kind: 'list' })}
       />
     );
   }
@@ -443,28 +489,10 @@ export default function App() {
       memoSets={memoSets}
       onOpen={(set) => {
         const board = boards.get(set.boardId);
-        if (board) push({ kind: 'memo', board, memoSet: set, saved: true });
+        if (board) push({ kind: 'memo', board, memoSet: set });
       }}
-      onRename={(id, name) => {
-        const set = memoSets.find((m) => m.id === id);
-        if (!set) return;
-        void db.putMemoSet({ ...set, name, updatedAt: Date.now() }).then(refresh);
-      }}
-      onDuplicate={(id) => {
-        const set = memoSets.find((m) => m.id === id);
-        if (!set) return;
-        const now = Date.now();
-        void db
-          .putMemoSet({
-            ...set,
-            id: newId(),
-            name: `${set.name} · ${formatToday(now)}`,
-            memos: set.memos.map((m) => ({ ...m, id: newId(), user: m.user.slice() as Marks })),
-            createdAt: now,
-            updatedAt: now,
-          })
-          .then(refresh);
-      }}
+      onRename={(id, memoName, boardName) => void rename(id, memoName, boardName)}
+      onDuplicate={(id) => void duplicate(id)}
       onDelete={(id) => void db.deleteMemoSetAndOrphanBoard(id).then(refresh)}
       onCopyLink={copyLink}
       onPrepareShare={(id) => {
@@ -473,13 +501,6 @@ export default function App() {
         if (set && board) prepareShare(board, set);
       }}
       onBack={back}
-      openBoardId={view.kind === 'list' ? view.boardId : null}
-      onOpenBoard={(boardId) => {
-        if (boardId) push({ kind: 'list', boardId });
-        // 盤面を閉じるのは、実際に盤面を開いているときだけ。
-        // グループ化のトグルからも null で呼ばれるので、無条件に戻すと一覧ごと抜けてしまう
-        else if (view.kind === 'list' && view.boardId) back();
-      }}
     />
   );
   })();
