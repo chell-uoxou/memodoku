@@ -186,8 +186,11 @@
 
 .groupToggle {
   flex: none;
+  display: flex;
+  align-items: center;
+  gap: 5px;
   height: 32px;
-  padding: 0 12px;
+  padding: 0 12px 0 10px;
   border-radius: 16px;
   background: var(--card);
   box-shadow: var(--shadow);

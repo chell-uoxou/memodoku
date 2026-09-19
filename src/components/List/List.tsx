@@ -6,6 +6,8 @@ import {
   BackIcon,
   ChevronRightIcon,
   CopyIcon,
+  FolderIcon,
+  FolderOpenIcon,
   GridIcon,
   LinkIcon,
   ListIcon,
@@ -127,6 +129,7 @@ export function List({
             setGrouped(grouped === 'flat' ? 'board' : 'flat');
           }}
         >
+          {grouped === 'board' ? <FolderOpenIcon size={15} /> : <FolderIcon size={15} />}
           盤面でグループ化
         </button>
         <IconButton

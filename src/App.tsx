@@ -474,9 +474,12 @@ export default function App() {
       }}
       onBack={back}
       openBoardId={view.kind === 'list' ? view.boardId : null}
-      onOpenBoard={(boardId) =>
-        boardId ? push({ kind: 'list', boardId }) : back()
-      }
+      onOpenBoard={(boardId) => {
+        if (boardId) push({ kind: 'list', boardId });
+        // 盤面を閉じるのは、実際に盤面を開いているときだけ。
+        // グループ化のトグルからも null で呼ばれるので、無条件に戻すと一覧ごと抜けてしまう
+        else if (view.kind === 'list' && view.boardId) back();
+      }}
     />
   );
   })();
