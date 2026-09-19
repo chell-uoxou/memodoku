@@ -1,6 +1,7 @@
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
+import basicSsl from '@vitejs/plugin-basic-ssl';
 
 // 静的ホスティング（GitHub Pages / Cloudflare Pages 等）に置く前提。
 // サブパス配信になる場合は base を書き換える。
@@ -8,6 +9,9 @@ export default defineConfig({
   base: './',
   plugins: [
     react(),
+    // 実機から開くときに https にする。crypto.subtle とクリップボード読み取りは
+    // セキュアコンテキストでしか動かないため
+    basicSsl(),
     VitePWA({
       registerType: 'autoUpdate',
       // アプリシェルだけをキャッシュする。盤面データは IndexedDB にある
