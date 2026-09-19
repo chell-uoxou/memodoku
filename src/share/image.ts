@@ -98,8 +98,9 @@ function roundRect(
  * ファイル名に使えない文字は落とす（"2026/09/20" → "20260920"）。
  */
 export function boardImageName(boardLabel: string, memoName: string, page: number): string {
-  const parts = [boardLabel, memoName, String(page)].map(fileSafe).filter(Boolean);
-  return `${parts.join('_') || 'meowdoku'}.png`;
+  const names = [boardLabel, memoName].map(fileSafe).filter(Boolean);
+  const parts = [...(names.length ? names : ['meowdokumemo']), fileSafe(String(page))];
+  return `${parts.filter(Boolean).join('_')}.png`;
 }
 
 function fileSafe(value: string): string {

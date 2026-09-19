@@ -12,6 +12,11 @@ describe('boardImageName', () => {
     expect(boardImageName('A/B:C', 'D*E?F', 1)).toBe('ABC_DEF_1.png');
   });
 
+  it('falls back to the app name when both names are empty', () => {
+    expect(boardImageName('', '', 4)).toBe('meowdokumemo_4.png');
+    expect(boardImageName('   ', '/', 1)).toBe('meowdokumemo_1.png');
+  });
+
   it('skips empty parts', () => {
     expect(boardImageName('', '2026/09/20', 2)).toBe('20260920_2.png');
     expect(boardImageName('Level 62', '', 1)).toBe('Level 62_1.png');
