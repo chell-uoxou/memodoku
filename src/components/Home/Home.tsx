@@ -28,8 +28,8 @@ export function Home({
           <CatMarkIcon size={28} />
         </span>
         <span>
-          <div className={s.title}>Meowdoku Memo</div>
-          <div className={s.tagline}>盤面を読み込み、メモ、共有</div>
+          <div className={s.title}>memodoku</div>
+          <div className={s.tagline}>Meowdokuの盤面を読み込み、メモ、共有</div>
         </span>
       </div>
 

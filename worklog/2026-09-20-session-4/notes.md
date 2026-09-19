@@ -45,3 +45,6 @@
 - 自動除外で増えたバツには触覚を出さない（猫1回につき1回だけ強く震える）。
 - `startViewTransition` は finished / updateCallbackDone に加えて **ready も reject する**。
   受けておかないとコンソールに未処理の Promise として出る。
+- 改名で変えたのは表に出る文字列だけ（ホーム、title、manifest、共有の文言、画像のフォールバック名、
+  package.json の name）。**IndexedDB 名と localStorage のキーは旧名のまま**にしている。
+  変えると保存済みのメモと設定が見えなくなるため。

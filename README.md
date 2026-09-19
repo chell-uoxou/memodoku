@@ -1,6 +1,9 @@
-# Meowdoku Memo
+# memodoku
 
 Meowdoku を解くときの思考メモ専用ツール。仕様は [docs/spec.md](docs/spec.md)。
+
+> 保存先（IndexedDB の `meowdoku-memo` と `meowdoku-memo:*` の localStorage キー）は
+> 旧名のままにしてある。変えると既に保存されているメモが見えなくなるため。
 
 ブラウザ内で完結する。バックエンドも外部APIも使わず、スクリーンショットはアップロードせずに
 `URL.createObjectURL` → Canvas で処理してすぐ破棄する。

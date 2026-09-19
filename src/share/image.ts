@@ -99,7 +99,7 @@ function roundRect(
  */
 export function boardImageName(boardLabel: string, memoName: string, page: number): string {
   const names = [boardLabel, memoName].map(fileSafe).filter(Boolean);
-  const parts = [...(names.length ? names : ['meowdokumemo']), fileSafe(String(page))];
+  const parts = [...(names.length ? names : ['memodoku']), fileSafe(String(page))];
   return `${parts.filter(Boolean).join('_')}.png`;
 }
 

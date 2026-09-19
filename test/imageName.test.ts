@@ -13,8 +13,8 @@ describe('boardImageName', () => {
   });
 
   it('falls back to the app name when both names are empty', () => {
-    expect(boardImageName('', '', 4)).toBe('meowdokumemo_4.png');
-    expect(boardImageName('   ', '/', 1)).toBe('meowdokumemo_1.png');
+    expect(boardImageName('', '', 4)).toBe('memodoku_4.png');
+    expect(boardImageName('   ', '/', 1)).toBe('memodoku_1.png');
   });
 
   it('skips empty parts', () => {

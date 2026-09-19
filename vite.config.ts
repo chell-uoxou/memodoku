@@ -24,8 +24,9 @@ export default defineConfig({
         navigateFallback: 'index.html',
       },
       manifest: {
-        name: 'Meowdoku Memo',
-        short_name: 'Meowdoku Memo',
+        name: 'memodoku',
+        short_name: 'memodoku',
+        description: 'Meowdokuの盤面を読み込み、メモ、共有',
         start_url: './',
         display: 'standalone',
         background_color: '#F6EFE7',

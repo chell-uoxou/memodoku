@@ -1,5 +1,9 @@
 import type { Board, MemoSet } from '../model/types';
 
+/**
+ * 保存先の名前。サービス名は memodoku に変えたが、ここを変えると
+ * 既に保存されているメモが見えなくなるのでそのままにしてある。
+ */
 const NAME = 'meowdoku-memo';
 const VERSION = 1;
 

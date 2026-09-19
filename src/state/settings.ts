@@ -18,6 +18,7 @@ export const DEFAULT_SETTINGS: Settings = {
   haptics: true,
 };
 
+/** 保存済みの設定を引き継ぐため、サービス名を変えたあとも旧いキーのまま使う */
 const KEY = 'meowdoku-memo:settings';
 
 function read(): Settings {
