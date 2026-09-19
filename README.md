@@ -1,32 +1,55 @@
-# React + TypeScript + Vite
+# Meowdoku Memo
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+Meowdoku を解くときの思考メモ専用ツール。仕様は [docs/spec.md](docs/spec.md)。
 
-Currently, two official plugins are available:
+ブラウザ内で完結する。バックエンドも外部APIも使わず、スクリーンショットはアップロードせずに
+`URL.createObjectURL` → Canvas で処理してすぐ破棄する。
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+```bash
+npm install
+npm run dev      # 開発サーバ
+npm test         # ユニットテスト（画像解析の固定スクショ検証を含む）
+npm run build    # 静的ビルド（dist/）
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+## 構成
+
+| ディレクトリ | 中身 |
+| --- | --- |
+| `src/model/` | 盤面モデル、Board.id のハッシュ、ルール検証、自動除外 |
+| `src/vision/` | 画像解析。UI 非依存で、Node 上のテストからそのまま呼べる |
+| `src/state/` | メモセットの状態、Undo/Redo、設定の localStorage 永続化 |
+| `src/db/` | IndexedDB（`boards` / `memoSets`） |
+| `src/share/` | 共有URLのビットパックと base64url |
+| `src/components/` | 画面（一覧 / 補正 / メモ / スクラバー / 設定 / 保存） |
+| `test/fixtures/shots/` | 実機スクショ。期待盤面は `test/shots.test.ts` に固定 |
+
+## 画像解析の流れ
+
+1. 長辺 1600px に縮小 → 彩度マスク（S>0.18, V>0.25）
+2. マスクを閉じて（半径は小さい方から試す）、アスペクト比 0.9〜1.1・幅60%以上の成分を盤面とする
+3. ギャップの投影プロファイルを自己相関にかけてピッチ → N
+4. 盤面より上の「背景でもカードでもない」塊が等間隔に並ぶ区間をチップ列として拾い、N をクロスチェック
+5. セル内側70%のドーナツから最頻色 → CIEDE2000 でクラスタリングしてパレットを作る
+6. セルごとに 猫 / バツ / 空 を構造で判定（ほぼ黒の比率、ほぼ白の比率、X字テンプレートとの相関）
+7. 猫セルの領域は推測で埋めず、決まるものだけ解決して残りは補正画面へ
+
+## 仕様からの意図的なずれ
+
+いずれも実機スクショ2枚に当てた結果。詳細は `worklog/2026-09-19-session-1/notes.md`。
+
+- **パレットはチップ色ではなくセル色から作る。** 顔になっているチップは色を持たないため、
+  §5.2 の「チップの色 = パレットの正解値」がそのままでは成り立たない。チップは N の
+  クロスチェックと「その色には既に猫がいる」の判定だけに使う。
+- **チップ列の検出に白いピルの矩形を使わない。** 実機では背景のクリーム（L≈96）と
+  白カード（L≈99）がほぼ同じ明度で分離できなかった。
+- **X字テンプレートの相関しきい値を 0.6 → 0.5 に下げた。** 実測の最小値が 0.61 で紙一重だったため。
+- **共有ペイロードにパレット（領域数×3バイト）を足した。** §11.2 の一覧には無いが、
+  無いと共有先で色が変わってメモとして読めなくなる。
+- **既知の領域数 + 不明セル数 = N のとき、不明セルはそれぞれ単独の領域として確定させる。**
+  数の上でそれ以外にあり得ないため。推測ではない。
+
+## まだ入れていないもの
+
+- Web Worker への退避（解析は実測 120〜220ms で、仕様の「重い場合のみ」に当たらないと判断）
+- OGP 画像、スクショ複数枚の一括インポート（どちらも仕様で「検討の余地」「最初のバージョンでは不要」）
