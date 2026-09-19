@@ -1,5 +1,5 @@
 /** URL の前に添える文言 */
-export const SHARE_MESSAGE = 'memodokuでMeowdokuの盤面のメモが共有されました：';
+export const SHARE_MESSAGE = 'MemodokuでMeowdokuの盤面のメモが共有されました：';
 
 export type SharePayload = {
   title: string;

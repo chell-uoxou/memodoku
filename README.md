@@ -1,4 +1,4 @@
-# memodoku
+# Memodoku
 
 Meowdoku を解くときの思考メモ専用ツール。仕様は [docs/spec.md](docs/spec.md)。
 
