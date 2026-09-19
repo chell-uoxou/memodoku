@@ -83,3 +83,85 @@ input::placeholder {
 img {
   -webkit-user-drag: none;
 }
+
+/* ---- 画面遷移 ---------------------------------------------------------
+   iOS のナビゲーションに寄せる。進むときは新しい画面が右から入り、
+   古い画面は少しだけ左へ引いて暗くなる。戻るときはその逆。
+   easing は iOS の push/pop に近い減衰カーブ。 */
+
+@media (prefers-reduced-motion: no-preference) {
+  ::view-transition-group(root) {
+    animation-duration: 340ms;
+  }
+
+  /* 既定のクロスフェードを止めて、自前のスライドだけにする */
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none;
+    mix-blend-mode: normal;
+  }
+
+  html[data-nav='push']::view-transition-old(root) {
+    z-index: 1;
+    animation: nav-out-left 340ms cubic-bezier(0.32, 0.72, 0, 1) both;
+  }
+
+  html[data-nav='push']::view-transition-new(root) {
+    z-index: 2;
+    animation: nav-in-right 340ms cubic-bezier(0.32, 0.72, 0, 1) both;
+  }
+
+  html[data-nav='pop']::view-transition-old(root) {
+    z-index: 2;
+    animation: nav-out-right 340ms cubic-bezier(0.32, 0.72, 0, 1) both;
+  }
+
+  html[data-nav='pop']::view-transition-new(root) {
+    z-index: 1;
+    animation: nav-in-left 340ms cubic-bezier(0.32, 0.72, 0, 1) both;
+  }
+}
+
+@keyframes nav-in-right {
+  from {
+    transform: translateX(100%);
+    box-shadow: -14px 0 28px rgba(110, 75, 58, 0.22);
+  }
+  to {
+    transform: translateX(0);
+    box-shadow: -14px 0 28px rgba(110, 75, 58, 0);
+  }
+}
+
+@keyframes nav-out-left {
+  from {
+    transform: translateX(0);
+    filter: brightness(1);
+  }
+  to {
+    transform: translateX(-28%);
+    filter: brightness(0.9);
+  }
+}
+
+@keyframes nav-in-left {
+  from {
+    transform: translateX(-28%);
+    filter: brightness(0.9);
+  }
+  to {
+    transform: translateX(0);
+    filter: brightness(1);
+  }
+}
+
+@keyframes nav-out-right {
+  from {
+    transform: translateX(0);
+    box-shadow: -14px 0 28px rgba(110, 75, 58, 0);
+  }
+  to {
+    transform: translateX(100%);
+    box-shadow: -14px 0 28px rgba(110, 75, 58, 0.22);
+  }
+}

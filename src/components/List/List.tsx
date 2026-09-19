@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState } from 'react';
 import type { Board, MemoSet } from '../../model/types';
 import { useStoredValue } from '../../state/settings';
+import { navigate } from '../../state/navigation';
 import { IconButton, Sheet, ui } from '../ui';
 import {
   BackIcon,
@@ -25,6 +26,8 @@ export type ListProps = {
   onDuplicate: (id: string) => void;
   onDelete: (id: string) => void;
   onCopyLink: (id: string) => void;
+  /** 長押しメニューを開いた時点で共有URLを作らせる（iOS のジェスチャ制限対策） */
+  onPrepareShare: (id: string) => void;
   onBack: () => void;
 };
 
@@ -36,6 +39,7 @@ export function List({
   onDuplicate,
   onDelete,
   onCopyLink,
+  onPrepareShare,
   onBack,
 }: ListProps) {
   const [mode, setMode] = useStoredValue<'list' | 'tile'>('meowdoku-memo:listMode', 'list');
@@ -69,6 +73,7 @@ export function List({
       longPress.current = window.setTimeout(() => {
         longPress.current = null;
         navigator.vibrate?.(8);
+        onPrepareShare(set.id);
         setMenu(set);
       }, LONG_PRESS_MS);
     },
@@ -98,7 +103,9 @@ export function List({
       <div className={s.top}>
         <IconButton
           small
-          onClick={() => (openBoard ? setOpenBoard(null) : onBack())}
+          onClick={() =>
+            openBoard ? navigate('pop', () => setOpenBoard(null)) : onBack()
+          }
           title="戻る"
         >
           <BackIcon size={16} />
@@ -146,7 +153,11 @@ export function List({
               const board = boards.get(boardId);
               if (!board) return null;
               return mode === 'list' ? (
-                <button key={boardId} className={s.row} onClick={() => setOpenBoard(boardId)}>
+                <button
+                  key={boardId}
+                  className={s.row}
+                  onClick={() => navigate('push', () => setOpenBoard(boardId))}
+                >
                   <Thumbnail board={board} marks={sets[0]?.memos[0]?.user} size={40} />
                   <span className={s.rowMain}>
                     <span className={s.rowTitle}>{board.label || '名前なしの盤面'}</span>
@@ -157,7 +168,11 @@ export function List({
                   </span>
                 </button>
               ) : (
-                <button key={boardId} className={s.tile} onClick={() => setOpenBoard(boardId)}>
+                <button
+                  key={boardId}
+                  className={s.tile}
+                  onClick={() => navigate('push', () => setOpenBoard(boardId))}
+                >
                   <Thumbnail board={board} marks={sets[0]?.memos[0]?.user} />
                   <span className={s.tileTitle}>{board.label || '名前なしの盤面'}</span>
                   <span className={s.tileSub}>メモ {sets.length} 件</span>

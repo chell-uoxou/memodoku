@@ -5,13 +5,16 @@ import basicSsl from '@vitejs/plugin-basic-ssl';
 
 // 静的ホスティング（GitHub Pages / Cloudflare Pages 等）に置く前提。
 // サブパス配信になる場合は base を書き換える。
+// 実機から開くときは https にする。crypto.subtle とクリップボード読み取りは
+// セキュアコンテキストでしか動かないため。
+// 自己署名証明書を嫌う環境では `npm run dev:http` で平文に落とせる。
+const useHttps = !process.env.VITE_HTTP;
+
 export default defineConfig({
   base: './',
   plugins: [
     react(),
-    // 実機から開くときに https にする。crypto.subtle とクリップボード読み取りは
-    // セキュアコンテキストでしか動かないため
-    basicSsl(),
+    ...(useHttps ? [basicSsl()] : []),
     VitePWA({
       registerType: 'autoUpdate',
       // アプリシェルだけをキャッシュする。盤面データは IndexedDB にある

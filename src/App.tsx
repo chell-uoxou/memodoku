@@ -13,6 +13,7 @@ import { Toast } from './components/ui/Toast';
 import { importScreenshot, pickImage, readClipboardImage } from './vision/import';
 import { Busy } from './components/ui/Busy';
 import { useBeforeUnload } from './state/unsaved';
+import { navigate } from './state/navigation';
 import { blankSetup as blank } from './components/Setup/Setup';
 import './styles/global.css';
 
@@ -86,11 +87,12 @@ export default function App() {
       const input = await importScreenshot(blob).catch(() => null);
       if (imageUrl.current) URL.revokeObjectURL(imageUrl.current);
       imageUrl.current = URL.createObjectURL(blob);
-      setView({
-        kind: 'setup',
+      const next = {
+        kind: 'setup' as const,
         input: { ...(input ?? blank(9)), imageUrl: imageUrl.current },
         id: newId(),
-      });
+      };
+      navigate('push', () => setView(next));
     } finally {
       setBusy(false);
     }
@@ -166,24 +168,56 @@ export default function App() {
     [refresh],
   );
 
-  const share = useCallback(async (board: Board, memoSet: MemoSet) => {
-    const payload = await encodeShare(board, memoSet);
-    const message = await shareLink(shareUrl(payload), memoSet.name);
-    if (message) {
+  /**
+   * 共有URLの先読み。iOS では共有シートもクリップボードも
+   * タップと同じタスクで呼ぶ必要があるので、押される前に作っておく。
+   */
+  const shareCache = useRef(new Map<string, string>());
+
+  const prepareShare = useCallback((board: Board, memoSet: MemoSet) => {
+    const key = `${memoSet.id}:${memoSet.updatedAt}`;
+    if (shareCache.current.has(key)) return;
+    void encodeShare(board, memoSet).then((payload) => {
+      shareCache.current.set(key, shareUrl(payload));
+      if (shareCache.current.size > 20) {
+        shareCache.current.delete(shareCache.current.keys().next().value!);
+      }
+    });
+  }, []);
+
+  const share = useCallback((board: Board, memoSet: MemoSet) => {
+    const url = shareCache.current.get(`${memoSet.id}:${memoSet.updatedAt}`);
+    if (!url) {
+      setToast('共有リンクを準備しています');
+      void encodeShare(board, memoSet).then((payload) => {
+        shareCache.current.set(`${memoSet.id}:${memoSet.updatedAt}`, shareUrl(payload));
+      });
+      return;
+    }
+    void shareLink(url, memoSet.name).then((message) => {
+      if (!message) return;
       navigator.vibrate?.(8);
       setToast(message);
-    }
+    });
   }, []);
 
   const copyLink = useCallback(
-    async (id: string) => {
+    (id: string) => {
       const set = memoSets.find((m) => m.id === id);
       if (!set) return;
       const board = boards.get(set.boardId);
-      if (board) await share(board, set);
+      if (board) share(board, set);
     },
     [memoSets, boards, share],
   );
+
+  // 書き込みのたびに作り直さないよう、少し待ってから先読みする
+  useEffect(() => {
+    if (view.kind !== 'memo' && view.kind !== 'share') return;
+    const { board, memoSet } = view;
+    const id = window.setTimeout(() => prepareShare(board, memoSet), 400);
+    return () => clearTimeout(id);
+  }, [view, prepareShare]);
 
   const screen = (() => {
   if (view.kind === 'setup') {
@@ -194,18 +228,20 @@ export default function App() {
         onDirtyChange={setSetupDirty}
         onCancel={() => {
           dropImage();
-          setView({ kind: 'home' });
+          navigate('pop', () => setView({ kind: 'home' }));
         }}
         onDone={(board: Board, imported: Marks) => {
           dropImage();
           const existing = boards.get(board.id);
           const merged = existing ? { ...board, label: existing.label } : board;
-          setView({
-            kind: 'memo',
-            board: merged,
-            memoSet: newMemoSet(merged, imported),
-            saved: false,
-          });
+          navigate('push', () =>
+            setView({
+              kind: 'memo',
+              board: merged,
+              memoSet: newMemoSet(merged, imported),
+              saved: false,
+            }),
+          );
         }}
       />
     );
@@ -220,12 +256,12 @@ export default function App() {
         initialMemoSet={view.memoSet}
         saved={view.saved}
         existingBoardName={existing?.label}
-        onBack={() => setView({ kind: 'list' })}
+        onBack={() => navigate('pop', () => setView({ kind: 'list' }))}
         onChange={handleChange}
         onSave={(memoSet, boardName, setName) =>
           void saveNow(view.board, memoSet, boardName, setName)
         }
-        onShare={(memoSet) => void share(view.board, memoSet)}
+        onShare={(memoSet) => share(view.board, memoSet)}
       />
     );
   }
@@ -242,7 +278,7 @@ export default function App() {
         existingBoardName={existing?.label}
         onBack={() => {
           history.replaceState(null, '', location.pathname);
-          setView({ kind: 'home' });
+          navigate('pop', () => setView({ kind: 'home' }));
         }}
         onSave={(memoSet, boardName, setName) => {
           history.replaceState(null, '', location.pathname);
@@ -258,8 +294,12 @@ export default function App() {
         memoSetCount={memoSets.length}
         onImport={() => fileInput.current?.click()}
         onPaste={() => void handlePaste()}
-        onManual={() => setView({ kind: 'setup', input: blankSetup(9), id: newId() })}
-        onOpenList={() => setView({ kind: 'list' })}
+        onManual={() =>
+          navigate('push', () =>
+            setView({ kind: 'setup', input: blankSetup(9), id: newId() }),
+          )
+        }
+        onOpenList={() => navigate('push', () => setView({ kind: 'list' }))}
       />
     );
   }
@@ -270,7 +310,9 @@ export default function App() {
       memoSets={memoSets}
       onOpen={(set) => {
         const board = boards.get(set.boardId);
-        if (board) setView({ kind: 'memo', board, memoSet: set, saved: true });
+        if (board) {
+          navigate('push', () => setView({ kind: 'memo', board, memoSet: set, saved: true }));
+        }
       }}
       onRename={(id, name) => {
         const set = memoSets.find((m) => m.id === id);
@@ -293,8 +335,13 @@ export default function App() {
           .then(refresh);
       }}
       onDelete={(id) => void db.deleteMemoSetAndOrphanBoard(id).then(refresh)}
-      onCopyLink={(id) => void copyLink(id)}
-      onBack={() => setView({ kind: 'home' })}
+      onCopyLink={copyLink}
+      onPrepareShare={(id) => {
+        const set = memoSets.find((m) => m.id === id);
+        const board = set && boards.get(set.boardId);
+        if (set && board) prepareShare(board, set);
+      }}
+      onBack={() => navigate('pop', () => setView({ kind: 'home' }))}
     />
   );
   })();
