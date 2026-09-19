@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { Board, Marks, MemoSet } from './model/types';
+import type { Board, Mark, Marks, MemoSet } from './model/types';
 import { blankSetup, Setup, type SetupInput } from './components/Setup/Setup';
 import { MemoSession } from './components/Memo/MemoSession';
 import { List } from './components/List/List';
@@ -10,6 +10,7 @@ import { emptyMarks } from './model/board';
 import * as db from './db/db';
 import { decodeShare, encodeShare, shareUrl } from './share/codec';
 import { shareLink } from './share/send';
+import { renderBoardPng } from './share/image';
 import { Toast } from './components/ui/Toast';
 import { importScreenshot, pickImage, readClipboardImage } from './vision/import';
 import { Busy } from './components/ui/Busy';
@@ -26,13 +27,6 @@ type View =
   | { kind: 'setup'; input: SetupInput; id: string }
   | { kind: 'memo'; board: Board; memoSet: MemoSet }
   | { kind: 'share'; board: Board; memoSet: MemoSet };
-
-/** 共有リンクで受け取った盤面は、自分の盤面と見分けが付くように名前を変えておく */
-function sharedLabel(label: string): string {
-  const name = label.trim();
-  if (!name) return 'Shared';
-  return name.startsWith('Shared - ') ? name : `Shared - ${name}`;
-}
 
 /** 画面から、URL に載せるルートを取り出す */
 function routeOf(view: View): Route {
@@ -162,8 +156,7 @@ export default function App() {
         const out = await decodeShare(route.payload);
         if (!alive) return;
         if (out) {
-          const board = { ...out.board, label: sharedLabel(out.board.label) };
-          setStack([{ kind: 'share', board, memoSet: out.memoSet }]);
+          setStack([{ kind: 'share', board: out.board, memoSet: out.memoSet }]);
           history.replaceState({ depth: 1 }, '', location.href);
           return;
         }
@@ -509,34 +502,55 @@ export default function App() {
    * 共有URLの先読み。iOS では共有シートもクリップボードも
    * タップと同じタスクで呼ぶ必要があるので、押される前に作っておく。
    */
-  const shareCache = useRef(new Map<string, string>());
+  const shareCache = useRef(new Map<string, { url: string; image: File | null }>());
 
-  const prepareShare = useCallback((board: Board, memoSet: MemoSet) => {
+  const buildShare = useCallback(async (board: Board, memoSet: MemoSet) => {
     const key = `${memoSet.id}:${memoSet.updatedAt}`;
-    if (shareCache.current.has(key)) return;
-    void encodeShare(board, memoSet).then((payload) => {
-      shareCache.current.set(key, shareUrl(payload));
-      if (shareCache.current.size > 20) {
-        shareCache.current.delete(shareCache.current.keys().next().value!);
-      }
-    });
+    const memo = memoSet.memos[memoSet.activeIndex] ?? memoSet.memos[0];
+    const marks = (memo?.user ?? memoSet.imported).map(
+      (u, i) => (memoSet.imported[i] || u) as Mark,
+    );
+    const [payload, png] = await Promise.all([
+      encodeShare(board, memoSet),
+      renderBoardPng(board, marks),
+    ]);
+    const name = `${board.label || 'meowdoku'}.png`.replace(/[\\/:*?"<>|]/g, '_');
+    const entry = {
+      url: shareUrl(payload),
+      image: png ? new File([png], name, { type: 'image/png' }) : null,
+    };
+    shareCache.current.set(key, entry);
+    if (shareCache.current.size > 12) {
+      shareCache.current.delete(shareCache.current.keys().next().value!);
+    }
+    return entry;
   }, []);
 
-  const share = useCallback((board: Board, memoSet: MemoSet) => {
-    const url = shareCache.current.get(`${memoSet.id}:${memoSet.updatedAt}`);
-    if (!url) {
-      setToast('共有リンクを準備しています');
-      void encodeShare(board, memoSet).then((payload) => {
-        shareCache.current.set(`${memoSet.id}:${memoSet.updatedAt}`, shareUrl(payload));
+  const prepareShare = useCallback(
+    (board: Board, memoSet: MemoSet) => {
+      if (shareCache.current.has(`${memoSet.id}:${memoSet.updatedAt}`)) return;
+      void buildShare(board, memoSet);
+    },
+    [buildShare],
+  );
+
+  const share = useCallback(
+    (board: Board, memoSet: MemoSet) => {
+      const entry = shareCache.current.get(`${memoSet.id}:${memoSet.updatedAt}`);
+      if (!entry) {
+        // まだ準備できていないときは作りながら待つ（リンクだけになることがある）
+        setToast('共有の準備をしています');
+        void buildShare(board, memoSet);
+        return;
+      }
+      void shareLink(entry.url, memoSet.name, entry.image).then((message) => {
+        if (!message) return;
+        navigator.vibrate?.(8);
+        setToast(message);
       });
-      return;
-    }
-    void shareLink(url, memoSet.name).then((message) => {
-      if (!message) return;
-      navigator.vibrate?.(8);
-      setToast(message);
-    });
-  }, []);
+    },
+    [buildShare],
+  );
 
   const copyLink = useCallback(
     (id: string) => {
@@ -597,6 +611,7 @@ export default function App() {
         board={view.board}
         initialMemoSet={view.memoSet}
         onReset
+        shared
         existingBoardName={existing?.label}
         onSave={(memoSet, boardName, setName) => {
           history.replaceState({ depth: 1 }, '', location.pathname);

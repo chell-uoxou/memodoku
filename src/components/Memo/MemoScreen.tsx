@@ -31,6 +31,8 @@ export type MemoScreenProps = {
   onSave?: () => void;
   onShare?: () => void;
   onReset?: () => void;
+  /** 共有リンクで開いた盤面。ヘッダにその旨を出す */
+  shared?: boolean;
   /** MemoSet は表示用（store.memoSet と同じ） */
   memoSet: MemoSet;
 };
@@ -45,6 +47,7 @@ export function MemoScreen({
   onSave,
   onShare,
   onReset,
+  shared,
   memoSet,
 }: MemoScreenProps) {
   const { active } = store;
@@ -81,6 +84,7 @@ export function MemoScreen({
         <span className={s.label}>
           {memoSet.name}
           <span className={s.sub}>
+            {shared && <span className={s.sharedTag}>共有</span>}
             {board.label || '名前なしの盤面'} · {board.n}×{board.n} ·{' '}
             {memoSet.activeIndex + 1}/{memoSet.memos.length}枚
           </span>

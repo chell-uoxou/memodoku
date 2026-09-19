@@ -107,3 +107,14 @@
     transform: scale(1);
   }
 }
+
+.sharedTag {
+  display: inline-block;
+  background: var(--accent);
+  color: #fff;
+  border-radius: 6px;
+  padding: 1px 5px;
+  font-size: 10px;
+  margin-right: 5px;
+  vertical-align: 1px;
+}

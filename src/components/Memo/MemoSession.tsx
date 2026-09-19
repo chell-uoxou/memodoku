@@ -6,6 +6,13 @@ import { SettingsSheet } from '../Settings/SettingsSheet';
 import { SaveSheet } from '../Save/SaveSheet';
 import { MemoScreen } from './MemoScreen';
 
+/** 共有リンクから保存するときのメモ名の初期値 */
+function sharedMemoName(name: string): string {
+  const base = name.trim();
+  if (!base) return 'Shared';
+  return base.startsWith('Shared - ') ? base : `Shared - ${base}`;
+}
+
 export function MemoSession({
   board,
   initialMemoSet,
@@ -15,6 +22,7 @@ export function MemoSession({
   onSave,
   onShare,
   onReset,
+  shared,
   existingBoardName,
 }: {
   board: Board;
@@ -27,6 +35,8 @@ export function MemoSession({
   onSave?: (memoSet: MemoSet, boardName: string, setName: string) => void;
   onShare?: (memoSet: MemoSet) => void;
   onReset?: boolean;
+  /** 共有リンクで開いた盤面 */
+  shared?: boolean;
   /** 同じ形の盤面が保存済みならその名前 */
   existingBoardName?: string;
 }) {
@@ -54,6 +64,7 @@ export function MemoSession({
         onSave={onSave ? () => setEditing(true) : undefined}
         onShare={onShare ? () => onShare(store.memoSet) : undefined}
         onReset={onReset ? store.resetActive : undefined}
+        shared={shared}
       />
       {sheet && (
         <SettingsSheet settings={settings} onToggle={toggle} onClose={() => setSheet(false)} />
@@ -62,7 +73,7 @@ export function MemoSession({
         <SaveSheet
           title={onSave ? '保存' : '名前を変更'}
           boardName={existingBoardName ?? board.label}
-          setName={store.memoSet.name}
+          setName={shared ? sharedMemoName(store.memoSet.name) : store.memoSet.name}
           existing={existingBoardName !== undefined}
           onClose={() => setEditing(false)}
           onSubmit={(boardName, setName) => {

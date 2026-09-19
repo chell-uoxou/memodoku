@@ -1,20 +1,35 @@
 /**
- * 共有リンクを渡す。
+ * 共有リンクを渡す。盤面の画像があれば一緒に送る（LINE などで見た目が伝わるように）。
  *
  * iOS Safari では `navigator.share` も `clipboard.writeText` も
- * **タップと同じタスクの中**で呼ばないと弾かれる。共有ペイロードの作成は
- * 非同期（CompressionStream）なので、URL は先に作っておいてここには
- * 出来上がった文字列だけを渡すこと。
+ * **タップと同じタスクの中**で呼ばないと弾かれる。リンクも画像も作るのが非同期なので、
+ * ここには出来上がったものだけを渡すこと。
  *
  * 返り値は画面に出す文言。null なら何も出さなくてよい。
  */
-export function shareLink(url: string, title: string): Promise<string | null> {
+export function shareLink(
+  url: string,
+  title: string,
+  image?: File | null,
+): Promise<string | null> {
   if (navigator.share) {
-    return navigator.share({ title, url }).then(
+    // 画像を受け付けるかは端末とブラウザによる
+    const withFile =
+      image && navigator.canShare?.({ files: [image] })
+        ? { title, text: url, files: [image] }
+        : null;
+    const payload = withFile ?? { title, url };
+    return navigator.share(payload).then(
       () => null, // OS の共有シートが出たので通知は不要
       (e: unknown) => {
-        // ユーザーが閉じただけなら何も出さない
         if (e instanceof DOMException && e.name === 'AbortError') return null;
+        // 画像付きで断られたらリンクだけでもう一度試す
+        if (withFile) {
+          return navigator.share({ title, url }).then(
+            () => null,
+            () => copy(url),
+          );
+        }
         return copy(url);
       },
     );

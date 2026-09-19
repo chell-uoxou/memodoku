@@ -20,7 +20,7 @@ npm run build    # 静的ビルド（dist/）
 | `src/vision/` | 画像解析。UI 非依存で、Node 上のテストからそのまま呼べる |
 | `src/state/` | メモセットの状態、Undo/Redo、設定の localStorage 永続化 |
 | `src/db/` | IndexedDB（`boards` / `memoSets`） |
-| `src/share/` | 共有URLのビットパックと base64url |
+| `src/share/` | 共有URLのビットパックと base64url、共有用の盤面画像 |
 | `src/state/router.ts` | ハッシュだけを使うルーター（静的ホスティングで 404 にならない） |
 | `src/components/` | 画面（ホーム / 一覧 / 補正 / メモ / スクラバー / 設定 / 保存） |
 | `scripts/` | PWA アイコンの生成（`node scripts/make-icons.mjs`） |
@@ -88,6 +88,11 @@ URL は**ハッシュフラグメントだけ**を書き換えるので、`/memo
 盤面名も重複しないよう連番を付けてから開く。
 
 名前が既存のものとぶつかるときは `uniqueName` が ` - 1`, ` - 2` と連番を足す（メモ名・盤面名の両方）。
+
+共有は `navigator.share` に**盤面の PNG とリンクの両方**を渡す（`src/share/image.ts` で
+Canvas に描き起こす）。端末が画像を受け付けないときはリンクだけ、`navigator.share` が
+無ければクリップボードにコピーする。リンクも画像も生成が非同期なので、押される前に
+先読みしてキャッシュしてある（iOS はタップと同じタスクでないと共有シートを開けない）。
 
 確認や通知は `useDialogs`（`src/components/ui/Dialog.tsx`）の自前ダイアログで出す。
 `window.confirm` / `window.alert` は使わない（見た目を揃えるため、また iOS で
