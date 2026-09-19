@@ -229,3 +229,75 @@
     transform: translate(-50%, 0);
   }
 }
+
+.dialogWrap {
+  position: fixed;
+  inset: 0;
+  z-index: 45;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  pointer-events: none;
+}
+
+.dialog {
+  pointer-events: auto;
+  width: 100%;
+  max-width: 320px;
+  background: var(--card);
+  border-radius: 20px;
+  box-shadow: 0 8px 28px rgba(110, 75, 58, 0.24);
+  padding: 20px 20px 14px;
+  animation: dialogIn 160ms ease;
+}
+
+@keyframes dialogIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.dialogTitle {
+  font-size: 15.5px;
+  line-height: 1.5;
+}
+
+.dialogMessage {
+  font-size: 13px;
+  color: var(--ink-weak);
+  line-height: 1.65;
+  margin-top: 7px;
+}
+
+.dialogButtons {
+  display: flex;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.dialogCancel,
+.dialogConfirm {
+  flex: 1;
+  border-radius: 14px;
+  padding: 12px;
+  font-size: 15px;
+}
+
+.dialogCancel {
+  background: var(--bg);
+  color: var(--ink-weak);
+}
+
+.dialogConfirm {
+  background: var(--accent);
+  color: #fff;
+}
+
+.dialogDanger {
+  background: var(--danger);
+}

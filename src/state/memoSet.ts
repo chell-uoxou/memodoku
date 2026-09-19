@@ -33,10 +33,11 @@ export function newMemoSet(board: Board, imported?: Marks, name?: string): MemoS
 }
 
 /**
- * 同じ名前のメモが既にあれば " - 1", " - 2" と連番を足す。
- * 元の名前が既に連番付き（"9/19 - 2"）なら、その根っこから数え直す。
+ * 同じ名前が既にあれば " - 1", " - 2" と連番を足す。メモ名にも盤面名にも使う。
+ * ぶつかったときだけ末尾の連番を落として根っこから数え直すので、
+ * 「A - 1」を複製すると「A - 1 - 1」ではなく「A - 2」になる。
  */
-export function uniqueMemoName(base: string, existing: Iterable<string>): string {
+export function uniqueName(base: string, existing: Iterable<string>): string {
   const taken = new Set(existing);
   if (!taken.has(base)) return base;
   // ぶつかったときだけ、末尾の連番を落として根っこから数え直す

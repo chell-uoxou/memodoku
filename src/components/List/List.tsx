@@ -16,6 +16,7 @@ import {
   PlusIcon,
   TrashIcon,
 } from '../ui/Icons';
+import type { Confirm } from '../ui/Dialog';
 import { Thumbnail } from './Thumbnail';
 import s from './List.module.css';
 
@@ -40,6 +41,7 @@ export type ListProps = {
   /** 盤面をもとに新しい盤面を作る（作成画面が開く） */
   onDuplicateBoard: (boardId: string) => void;
   onDeleteBoard: (boardId: string) => void;
+  confirm: Confirm;
 };
 
 export function List({
@@ -58,6 +60,7 @@ export function List({
   onNewMemo,
   onDuplicateBoard,
   onDeleteBoard,
+  confirm,
 }: ListProps) {
   const [mode, setMode] = useStoredValue<'list' | 'tile'>('meowdoku-memo:listMode', 'list');
   const [grouped, setGrouped] = useStoredValue<'flat' | 'board'>(
@@ -117,11 +120,15 @@ export function List({
 
   const boardNameOf = (boardId: string) => boards.get(boardId)?.label || '名前なしの盤面';
 
-  const confirmDeleteBoard = (board: Board) => {
+  const confirmDeleteBoard = async (board: Board) => {
     const count = byBoard.get(board.id)?.length ?? 0;
-    if (window.confirm(`「${boardNameOf(board.id)}」とメモ ${count} 件をすべて削除しますか？`)) {
-      onDeleteBoard(board.id);
-    }
+    const ok = await confirm({
+      title: `「${boardNameOf(board.id)}」を削除しますか？`,
+      message: `この盤面のメモ ${count} 件もすべて消えます。`,
+      confirmLabel: '削除する',
+      danger: true,
+    });
+    if (ok) onDeleteBoard(board.id);
   };
 
   const boardPressHandlers = (board: Board) => ({
@@ -195,7 +202,7 @@ export function List({
             <IconButton small onClick={() => onNewMemo(openBoard.id)} title="この盤面で新しいメモ">
               <PlusIcon size={16} />
             </IconButton>
-            <IconButton small onClick={() => confirmDeleteBoard(openBoard)} title="盤面を削除">
+            <IconButton small onClick={() => void confirmDeleteBoard(openBoard)} title="盤面を削除">
               <TrashIcon size={16} />
             </IconButton>
           </>
@@ -314,8 +321,13 @@ export function List({
           <button
             className={`${s.menuBtn} ${s.danger}`}
             onClick={() => {
-              if (window.confirm(`「${menu.name}」を削除しますか？`)) onDelete(menu.id);
+              const set = menu;
               setMenu(null);
+              void confirm({
+                title: `「${set.name}」を削除しますか？`,
+                confirmLabel: '削除する',
+                danger: true,
+              }).then((ok) => ok && onDelete(set.id));
             }}
           >
             <TrashIcon size={17} />
@@ -369,8 +381,9 @@ export function List({
           <button
             className={`${s.menuBtn} ${s.danger}`}
             onClick={() => {
-              confirmDeleteBoard(boardMenu);
+              const board = boardMenu;
               setBoardMenu(null);
+              void confirmDeleteBoard(board);
             }}
           >
             <TrashIcon size={17} />

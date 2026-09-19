@@ -16,3 +16,7 @@
 - 連番は `uniqueMemoName`（src/state/memoSet.ts）。ぶつかったときだけ末尾の " - N" を落として
   根っこから数え直すので、「A - 1」を複製すると「A - 1 - 1」ではなく「A - 2」になる。
   名前の重複判定は IndexedDB から読み直して行う（画面の state が古い可能性があるため）。
+- 自前ダイアログは Promise を返す `useDialogs`。`canLeave` が同期前提だったので、
+  popstate 側は「いったん履歴を積み直して留まる → 確認が取れたら skipConfirm を立てて history.back()」
+  という流れに変えた。
+- 同じ盤面かどうかの判定は `normalizeRegions` の一致で見る（Board.id と同値だが同期的に判定できる）。

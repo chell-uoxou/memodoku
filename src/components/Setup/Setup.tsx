@@ -5,6 +5,7 @@ import {
   disconnectedCells,
   emptyMarks,
   fallbackPalette,
+  normalizeRegions,
   validateBoard,
 } from '../../model/board';
 import { violatingCats } from '../../model/rules';
@@ -22,6 +23,11 @@ export type SetupInput = {
   kind: BoardKind;
   /** 読み込んだスクショの ObjectURL。読み取り結果と見比べるために保持する */
   imageUrl?: string;
+  /**
+   * この形と同じ盤面は作れない（盤面の複製のとき、既存の盤面の形を渡す）。
+   * Board.id は領域の区切り方のハッシュなので、正規化した regions が一致したら同じ盤面になる。
+   */
+  blockedShapes?: { n: number; regions: number[] }[];
 };
 
 export function blankSetup(n: number): SetupInput {
@@ -157,9 +163,24 @@ export function Setup({
     return out;
   }, [regions, imported, n, unknownCount]);
 
-  const blocked = unknownCount > 0 || ruleProblems.length > 0;
+  /** 既に保存されている盤面と同じ形になっていないか */
+  const sameAsExisting = useMemo(() => {
+    if (!input.blockedShapes?.length || unknownCount > 0) return false;
+    const mine = normalizeRegions(regions as number[]).join(',');
+    return input.blockedShapes.some(
+      (shape) => shape.n === n && normalizeRegions(shape.regions).join(',') === mine,
+    );
+  }, [input.blockedShapes, regions, n, unknownCount]);
+
+  const blocked = unknownCount > 0 || ruleProblems.length > 0 || sameAsExisting;
   const doneLabel =
-    unknownCount > 0 ? `残り ${unknownCount}` : ruleProblems.length ? 'ルール違反あり' : '完了';
+    unknownCount > 0
+      ? `残り ${unknownCount}`
+      : ruleProblems.length
+        ? 'ルール違反あり'
+        : sameAsExisting
+          ? '同じ盤面が既にあります'
+          : '完了';
 
   const finish = async () => {
     try {

@@ -16,8 +16,3 @@ export function useBeforeUnload(active: boolean) {
     return () => window.removeEventListener('beforeunload', handler);
   }, [active]);
 }
-
-/** 画面内の遷移で使う確認。OK なら true */
-export function confirmDiscard(message = '保存していない変更があります。破棄しますか？') {
-  return window.confirm(message);
-}

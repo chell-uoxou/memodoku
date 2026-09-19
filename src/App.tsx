@@ -4,7 +4,7 @@ import { blankSetup, Setup, type SetupInput } from './components/Setup/Setup';
 import { MemoSession } from './components/Memo/MemoSession';
 import { List } from './components/List/List';
 import { Home } from './components/Home/Home';
-import { formatToday, newId, newMemoSet, uniqueMemoName } from './state/memoSet';
+import { formatToday, newId, newMemoSet, uniqueName } from './state/memoSet';
 import { suppressBrowserGestures } from './gestures';
 import { emptyMarks } from './model/board';
 import * as db from './db/db';
@@ -13,10 +13,10 @@ import { shareLink } from './share/send';
 import { Toast } from './components/ui/Toast';
 import { importScreenshot, pickImage, readClipboardImage } from './vision/import';
 import { Busy } from './components/ui/Busy';
-import { useBeforeUnload } from './state/unsaved';
+import { useDialogs } from './components/ui/Dialog';
 import { navigate } from './state/navigation';
 import { parseHash, urlFor, type Route } from './state/router';
-import { confirmDiscard } from './state/unsaved';
+import { useBeforeUnload } from './state/unsaved';
 import { blankSetup as blank } from './components/Setup/Setup';
 import './styles/global.css';
 
@@ -57,6 +57,7 @@ export default function App() {
   const [memoSets, setMemoSets] = useState<MemoSet[]>([]);
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  const { confirm, notify, element: dialog } = useDialogs();
   const autosave = useRef<number | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   const imageUrl = useRef<string | null>(null);
@@ -66,13 +67,19 @@ export default function App() {
   const setupDirtyRef = useRef(setupDirty);
   setupDirtyRef.current = setupDirty;
 
-  /** 今の画面を離れてよいか。未保存なら確認する */
-  const canLeave = useCallback((current: View) => {
-    if (current.kind === 'setup' && setupDirtyRef.current) {
-      return confirmDiscard('作成中の盤面を破棄しますか？');
-    }
-    return true;
-  }, []);
+  /** 離れる前に確認が必要な画面か */
+  const needsConfirm = (current: View) => current.kind === 'setup' && setupDirtyRef.current;
+
+  const confirmLeave = useCallback(
+    () =>
+      confirm({
+        title: '作成中の盤面を破棄しますか？',
+        message: '編集した内容は保存されません。',
+        confirmLabel: '破棄する',
+        danger: true,
+      }),
+    [confirm],
+  );
 
   /** 1つ進む。履歴にも積むので、ブラウザの戻るとスワイプで戻れる */
   const push = useCallback((next: View) => {
@@ -94,10 +101,16 @@ export default function App() {
    * 明示的に押されたときだけアニメーションさせる。
    */
   const backPressed = useRef(false);
+  /** 確認済みで戻るとき、popstate 側で二重に聞かないための印 */
+  const skipConfirm = useRef(false);
 
   /** 1つ戻る。実体はブラウザの履歴を戻すだけで、popstate 側が画面を切り替える */
-  const back = useCallback(() => {
-    if (!canLeave(stackRef.current[stackRef.current.length - 1])) return;
+  const back = useCallback(async () => {
+    const current = stackRef.current[stackRef.current.length - 1];
+    if (needsConfirm(current)) {
+      if (!(await confirmLeave())) return;
+      skipConfirm.current = true;
+    }
     if (stackRef.current.length > 1) {
       backPressed.current = true;
       // popstate が来なかったときに取り残されないように戻しておく
@@ -108,7 +121,7 @@ export default function App() {
     } else {
       navigate('pop', () => setStack([{ kind: 'home' }]));
     }
-  }, [canLeave]);
+  }, [confirmLeave]);
 
   // 未保存の変更があるあいだはタブを閉じる前に確認する
   useBeforeUnload(view.kind === 'setup' && setupDirty);
@@ -118,7 +131,7 @@ export default function App() {
   /** 保存済みのメモと名前がぶつからないように連番を足す */
   const nextName = useCallback(async (base: string) => {
     const sets = await db.allMemoSets();
-    return uniqueMemoName(base, sets.map((m) => m.name));
+    return uniqueName(base, sets.map((m) => m.name));
   }, []);
 
   const refresh = useCallback(async () => {
@@ -185,17 +198,25 @@ export default function App() {
       const current = stackRef.current;
       if (depth >= current.length) return; // 進む方向は復元できないので何もしない
 
-      if (!canLeave(current[current.length - 1])) {
-        // 戻らせない。消えた履歴エントリを積み直して今の画面に留まる
-        history.pushState({ depth: current.length }, '', urlFor(routeOf(current[current.length - 1])));
+      const leaving = current[current.length - 1];
+      if (needsConfirm(leaving) && !skipConfirm.current) {
+        // いったん今の画面に留まり、確認が取れてから改めて戻る
+        history.pushState({ depth: current.length }, '', urlFor(routeOf(leaving)));
+        void confirmLeave().then((ok) => {
+          if (!ok) return;
+          skipConfirm.current = true;
+          backPressed.current = byButton;
+          history.back();
+        });
         return;
       }
+      skipConfirm.current = false;
       // スワイプで戻ったときはブラウザ側の動きに任せる
       navigate(byButton ? 'pop' : 'none', () => setStack(current.slice(0, depth)));
     };
     window.addEventListener('popstate', onPop);
     return () => window.removeEventListener('popstate', onPop);
-  }, [canLeave]);
+  }, [confirmLeave]);
 
   /** 保存済みの MemoSet は変更から500msデバウンスでオートセーブ */
   const handleChange = useCallback(
@@ -248,11 +269,11 @@ export default function App() {
     try {
       const blob = await readClipboardImage();
       if (blob) await handleImage(blob);
-      else window.alert('クリップボードに画像がありません。');
+      else await notify('クリップボードに画像がありません', 'スクショをコピーしてから試してください。');
     } catch {
-      window.alert('クリップボードを読み取れませんでした。');
+      await notify('クリップボードを読み取れませんでした');
     }
-  }, [handleImage]);
+  }, [handleImage, notify]);
 
   // ファイル選択・ドラッグ&ドロップ・クリップボード貼り付けの3経路
   useEffect(() => {
@@ -343,7 +364,8 @@ export default function App() {
       const set = memoSets.find((m) => m.id === id);
       const board = set && boards.get(set.boardId);
       if (!set || !board) return;
-      if (!window.confirm(`「${set.name}」を複製しますか？`)) return;
+      if (!(await confirm({ title: `「${set.name}」を複製しますか？`, confirmLabel: '複製する' })))
+        return;
       const now = Date.now();
       const copy: MemoSet = {
         ...set,
@@ -357,7 +379,7 @@ export default function App() {
       await refresh();
       push({ kind: 'memo', board, memoSet: copy });
     },
-    [memoSets, boards, refresh, push, nextName],
+    [memoSets, boards, refresh, push, nextName, confirm],
   );
 
   /** 盤面名だけを変える */
@@ -408,8 +430,15 @@ export default function App() {
           regions: [...board.regions],
           palette: [...board.palette],
           imported: emptyMarks(board.n),
-          label: board.label,
+          label: board.label
+            ? uniqueName(
+                board.label,
+                [...boards.values()].map((b) => b.label),
+              )
+            : '',
           kind: board.kind,
+          // 既に保存されている盤面と同じ形のままでは作れないようにする
+          blockedShapes: [...boards.values()].map((b) => ({ n: b.n, regions: b.regions })),
         },
       });
     },
@@ -579,6 +608,7 @@ export default function App() {
       onDuplicate={(id) => void duplicate(id)}
       onDelete={(id) => void db.deleteMemoSetAndOrphanBoard(id).then(refresh)}
       onCopyLink={copyLink}
+      confirm={confirm}
       onPrepareShare={(id) => {
         const set = memoSets.find((m) => m.id === id);
         const board = set && boards.get(set.boardId);
@@ -603,6 +633,7 @@ export default function App() {
       <ImagePicker inputRef={fileInput} onPick={handleImage} />
       {screen}
       {busy && <Busy label="スクショを読み取っています" />}
+      {dialog}
       {toast && <Toast message={toast} onDone={() => setToast(null)} />}
     </>
   );
