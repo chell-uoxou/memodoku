@@ -26,19 +26,47 @@ const TICK_GAP_MS = 55;
 
 let enabled = readInitial();
 let lever: HTMLLabelElement | null = null;
-/** 指が画面に触れている最中か */
+
+/**
+ * 指が画面に触れている最中か。
+ * iOS は pointerdown の処理の中で switch を叩いても鳴らない（次のタスクに逃がしても同じ）。
+ * 唯一確実に鳴るのは「本物の click イベントの中で叩いたとき」なので、
+ * なぞっている最中に要求された手応えは次の click まで持ち越す。
+ */
 let pointerDown = false;
+let pending: Strength | null = null;
+let expiry: number | null = null;
 
 if (typeof document !== 'undefined') {
-  const down = () => {
-    pointerDown = true;
-  };
-  const up = () => {
+  document.addEventListener(
+    'pointerdown',
+    () => {
+      pointerDown = true;
+      // 前のジェスチャの持ち越しは捨てる
+      pending = null;
+    },
+    { capture: true, passive: true },
+  );
+  const release = () => {
     pointerDown = false;
+    // click が来ないジェスチャ（ドラッグなど）で取り残さないように
+    if (expiry !== null) clearTimeout(expiry);
+    expiry = window.setTimeout(() => {
+      pending = null;
+    }, 400);
   };
-  document.addEventListener('pointerdown', down, { capture: true, passive: true });
-  document.addEventListener('pointerup', up, { capture: true, passive: true });
-  document.addEventListener('pointercancel', up, { capture: true, passive: true });
+  document.addEventListener('pointerup', release, { capture: true, passive: true });
+  document.addEventListener('pointercancel', release, { capture: true, passive: true });
+  document.addEventListener(
+    'click',
+    () => {
+      if (!pending) return;
+      const strength = pending;
+      pending = null;
+      playTicks(strength);
+    },
+    { capture: true, passive: true },
+  );
 }
 
 function readInitial(): boolean {
@@ -81,7 +109,6 @@ function ensureLever(): HTMLLabelElement | null {
     opacity: '0',
     // 指には触れさせない。描画はされているので触覚だけ鳴る
     pointerEvents: 'none',
-    zIndex: '-1',
     margin: '0',
     padding: '0',
   });
@@ -103,6 +130,15 @@ function ensureLever(): HTMLLabelElement | null {
   return lever;
 }
 
+function playTicks(strength: Strength) {
+  const el = ensureLever();
+  if (!el) return;
+  el.click();
+  for (let k = 1; k < TICKS[strength]; k++) {
+    window.setTimeout(() => el.click(), TICK_GAP_MS * k);
+  }
+}
+
 function fire(strength: Strength) {
   if (!enabled) return;
   try {
@@ -110,16 +146,12 @@ function fire(strength: Strength) {
       navigator.vibrate(PATTERN[strength]);
       return;
     }
-    const el = ensureLever();
-    if (!el) return;
-    // 盤面をなぞっている最中（pointerdown の処理中）に叩いても iOS が鳴らさないので、
-    // 指が触れているあいだは次のタスクに逃がしてから叩く
-    const tick = () => el.click();
-    const start = pointerDown ? () => window.setTimeout(tick, 0) : tick;
-    start();
-    for (let k = 1; k < TICKS[strength]; k++) {
-      window.setTimeout(tick, TICK_GAP_MS * k);
+    if (pointerDown) {
+      // 指を離したあとの click で鳴らす。強い方を優先する
+      if (pending !== 'heavy') pending = strength;
+      return;
     }
+    playTicks(strength);
   } catch {
     /* 触覚が出せなくても操作は続けられるので握りつぶす */
   }
