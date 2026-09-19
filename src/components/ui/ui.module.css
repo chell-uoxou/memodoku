@@ -308,3 +308,14 @@
 .dialogDanger {
   background: var(--danger);
 }
+
+.smallAction {
+  flex: none;
+  height: 28px;
+  padding: 0 12px;
+  border-radius: 14px;
+  background: var(--bg);
+  color: var(--ink-weak);
+  font-size: 12.5px;
+  white-space: nowrap;
+}

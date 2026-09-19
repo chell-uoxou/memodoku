@@ -109,9 +109,15 @@ URL は**ハッシュフラグメントだけ**を書き換えるので、`/memo
 ## 触覚フィードバック
 
 印を置くたびに短く、猫を置いたときは強く、メモを切り替えたときに軽く震える。
-[web-haptics](https://github.com/lochie/web-haptics) を使っていて、`navigator.vibrate`
-が無い iOS Safari では隠した `<input type="checkbox" switch>` のラベルを叩く方式に
-自動で切り替わる。設定パネルのトグルで止められる（**ここだけ既定 ON**）。
+設定パネルのトグルで止められる（**ここだけ既定 ON**）。隣の「試す」で手応えを確認できる。
+
+- Android / デスクトップ: Vibration API
+- iOS Safari: `navigator.vibrate` が無いので、`<input type="checkbox" switch>` を
+  ラベル経由で click する（iOS 17.4 以降）
+
+**この switch を `display: none` で隠してはいけない。** 描画されていない要素を click しても
+iOS は触覚を出さない。`opacity: 0` と `pointer-events: none` で、描画は残したまま
+見えなく・触れなくしてある。iOS は強さを選べないので、強いときは短く2回鳴らしている。
 
 ## 実装メモ
 

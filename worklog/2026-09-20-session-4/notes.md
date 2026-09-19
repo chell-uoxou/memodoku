@@ -35,8 +35,11 @@
   メモを切り替えても前のメモの画像が出てしまう（updatedAt は切り替えでは変わらないため）。
 - 確認シートを挟むことで、共有の起点が「シートの共有するボタンのクリック」になるので、
   iOS のユーザー操作制約は自然に満たせる。先読みは引き続き、シートを即座に開くために使う。
-- 触覚は web-haptics（MIT・依存なし）。iOS Safari には navigator.vibrate が無く、
-  隠した `<input type="checkbox" switch>` のラベルを click する方式に中で切り替わる。
+- 触覚は最初 web-haptics を使ったが、実機の iOS で鳴らなかった。
+  **原因の本命は web-haptics が switch を `display: none` で隠していること**
+  （描画されていない要素を click しても iOS は触覚を出さない）。
+  ios-haptics は逆に、透明な本物の switch をボタンに重ねる作りになっていた。
+  自前実装に置き換え、`opacity: 0` + `pointer-events: none` で描画は残すようにした。
 - 設定の反映は `useSettings` の永続化 effect から `setHapticsEnabled` を呼ぶ。
   初期値は haptics.ts 側で localStorage を直接読む（どの画面より先に決まるため）。
 - 自動除外で増えたバツには触覚を出さない（猫1回につき1回だけ強く震える）。

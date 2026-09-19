@@ -64,11 +64,14 @@ export function ToggleRow({
   hint,
   on,
   onToggle,
+  action,
 }: {
   label: string;
   hint?: string;
   on: boolean;
   onToggle: () => void;
+  /** トグルの手前に置く小さなボタン（動作確認用など） */
+  action?: ReactNode;
 }) {
   return (
     <div className={s.row}>
@@ -76,6 +79,7 @@ export function ToggleRow({
         <span>{label}</span>
         {hint && <span className={s.rowHint}>{hint}</span>}
       </span>
+      {action}
       <button className={s.switch} data-on={on} onClick={onToggle} aria-label={label}>
         <span className={s.knob} />
       </button>
