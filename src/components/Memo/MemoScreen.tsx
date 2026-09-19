@@ -10,7 +10,6 @@ import {
   EyeOffIcon,
   SettingsIcon,
   RedoIcon,
-  SaveIcon,
   ShareIcon,
   UndoIcon,
 } from '../ui/Icons';
@@ -73,24 +72,27 @@ export function MemoScreen({
         <IconButton onClick={onBack} small title="戻る">
           <BackIcon size={16} />
         </IconButton>
-        <span className={s.label}>{board.label}</span>
+        <span className={s.label}>
+          {board.label || '名前なしの盤面'}
+          <span className={s.sub}>
+            メモ {memoSet.activeIndex + 1}/{memoSet.memos.length} · {board.n}×{board.n}
+          </span>
+        </span>
+        {!saved && onSave && (
+          <button className={s.save} onClick={onSave}>
+            保存
+          </button>
+        )}
+      </div>
+
+      <div className={s.tools}>
         <IconButton onClick={store.undo} disabled={!store.canUndo} small title="元に戻す">
           <UndoIcon size={16} />
         </IconButton>
         <IconButton onClick={store.redo} disabled={!store.canRedo} small title="やり直す">
           <RedoIcon size={16} />
         </IconButton>
-        <IconButton onClick={store.toggleImported} small title="インポート表示">
-          {active.showImported ? <EyeIcon size={16} /> : <EyeOffIcon size={16} />}
-        </IconButton>
-        {onShare && (
-          <IconButton onClick={onShare} small title="共有">
-            <ShareIcon size={16} />
-          </IconButton>
-        )}
-        <IconButton onClick={onOpenSettings} small title="設定">
-          <SettingsIcon size={16} />
-        </IconButton>
+        <span className={s.grow} />
         {onReset && (
           <button
             className={s.reset}
@@ -106,11 +108,22 @@ export function MemoScreen({
             {confirmReset ? '本当に？' : 'リセット'}
           </button>
         )}
-        {!saved && onSave && (
-          <IconButton onClick={onSave} small title="保存">
-            <SaveIcon size={16} />
+        <IconButton
+          onClick={store.toggleImported}
+          small
+          active={active.showImported}
+          title={active.showImported ? 'スクショの内容を隠す' : 'スクショの内容を表示'}
+        >
+          {active.showImported ? <EyeIcon size={16} /> : <EyeOffIcon size={16} />}
+        </IconButton>
+        {onShare && (
+          <IconButton onClick={onShare} small title="共有リンクをコピー">
+            <ShareIcon size={16} />
           </IconButton>
         )}
+        <IconButton onClick={onOpenSettings} small title="設定">
+          <SettingsIcon size={16} />
+        </IconButton>
       </div>
 
       <div className={s.boardArea}>
@@ -128,6 +141,10 @@ export function MemoScreen({
             onStroke={(actions, phase) => store.onStroke(actions, phase, settings.autoExclude)}
           />
         </div>
+      </div>
+
+      <div className={s.hint}>
+        タップでバツ、もう一度タップで猫。ドラッグでまとめて塗れます
       </div>
 
       <Scrubber

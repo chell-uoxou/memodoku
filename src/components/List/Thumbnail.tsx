@@ -1,5 +1,6 @@
 import type { Board, Marks } from '../../model/types';
 import { CAT, CROSS } from '../../model/types';
+import { CAT_PATH } from '../ui/catPath';
 
 /** 一覧用のサムネイル。盤面を SVG で簡略描画する */
 export function Thumbnail({
@@ -35,10 +36,12 @@ export function Thumbnail({
               width={cell}
               height={cell}
               rx={cell * 0.16}
-              fill={mark === CAT ? 'var(--accent)' : board.palette[region]}
+              fill={board.palette[region]}
             />
             {mark === CAT && (
-              <circle cx={x + cell / 2} cy={y + cell / 2} r={cell * 0.28} fill="var(--ink)" />
+              <g transform={`translate(${x + cell * 0.12} ${y + cell * 0.12}) scale(${(cell * 0.76) / 100})`}>
+                <path d={CAT_PATH} fill="var(--ink)" />
+              </g>
             )}
             {mark === CROSS && (
               <g stroke="#fff" strokeWidth={cell * 0.11} strokeLinecap="round">

@@ -15,7 +15,7 @@ import './styles/global.css';
 type View =
   | { kind: 'home' }
   | { kind: 'list' }
-  | { kind: 'setup'; input: SetupInput }
+  | { kind: 'setup'; input: SetupInput; id: string }
   | { kind: 'memo'; board: Board; memoSet: MemoSet; saved: boolean }
   | { kind: 'share'; board: Board; memoSet: MemoSet };
 
@@ -64,7 +64,7 @@ export default function App() {
   /** §5 スクリーンショットから補正画面へ。読めなければ空の盤面を出す */
   const handleImage = useCallback(async (blob: Blob) => {
     const input = await importScreenshot(blob).catch(() => null);
-    setView({ kind: 'setup', input: input ?? blank(9) });
+    setView({ kind: 'setup', input: input ?? blank(9), id: newId() });
   }, []);
 
   // ファイル選択・ドラッグ&ドロップ・クリップボード貼り付けの3経路
@@ -124,6 +124,7 @@ export default function App() {
   if (view.kind === 'setup') {
     return (
       <Setup
+        key={view.id}
         input={view.input}
         onCancel={() => setView({ kind: 'home' })}
         onDone={(board: Board, imported: Marks) => {
@@ -197,7 +198,7 @@ export default function App() {
         <Home
           memoSetCount={memoSets.length}
           onImport={() => fileInput.current?.click()}
-          onManual={() => setView({ kind: 'setup', input: blankSetup(9) })}
+          onManual={() => setView({ kind: 'setup', input: blankSetup(9), id: newId() })}
           onOpenList={() => setView({ kind: 'list' })}
         />
       </>
@@ -224,7 +225,7 @@ export default function App() {
         const board = boards.get(set.boardId);
         if (board) setView({ kind: 'memo', board, memoSet: set, saved: true });
       }}
-      onNew={() => setView({ kind: 'setup', input: blankSetup(9) })}
+      onNew={() => setView({ kind: 'setup', input: blankSetup(9), id: newId() })}
       onImport={() => fileInput.current?.click()}
       onRename={(id, name) => {
         const set = memoSets.find((m) => m.id === id);

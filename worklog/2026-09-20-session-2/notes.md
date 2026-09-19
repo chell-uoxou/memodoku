@@ -10,3 +10,7 @@ UI の文字が少なすぎる件の改善、ホーム画面の新設、猫ア�
   `computeBoardId` が例外を投げて完了ハンドラが黙って死んでいた。
   `src/model/sha256.ts` に自前実装を置いてフォールバックさせた。
   → 本番を https に置く限り subtle が使われるので、ハッシュ値は同じ。
+- **同じ画面に別の input を渡しても React は state を作り直さない**。スクショ読み込み中に
+  もう一度貼り付けると古い盤面のままだった。App 側で `key={view.id}` を付けて解決。
+- 猫のシルエットは `src/components/ui/catPath.ts` に1本化した（盤面・サムネイル・
+  ホームのマーク・PWA アイコンが同じ形になる）。アイコンPNGは `node scripts/make-icons.mjs` で再生成。
