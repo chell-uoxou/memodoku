@@ -65,3 +65,12 @@ export async function deleteMemoSetAndOrphanBoard(id: string) {
     await run('boards', 'readwrite', (s) => s.delete(memoSet.boardId));
   }
 }
+
+/** 盤面と、それに紐づく MemoSet をまとめて消す */
+export async function deleteBoardWithMemoSets(boardId: string) {
+  const sets = await allMemoSets();
+  for (const set of sets) {
+    if (set.boardId === boardId) await deleteMemoSet(set.id);
+  }
+  await run('boards', 'readwrite', (s) => s.delete(boardId));
+}

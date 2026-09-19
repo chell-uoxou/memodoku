@@ -8,6 +8,7 @@
 export type Route =
   | { kind: 'home' }
   | { kind: 'list' }
+  | { kind: 'board'; boardId: string }
   | { kind: 'setup' }
   | { kind: 'memo'; memoSetId: string }
   | { kind: 'share'; payload: string };
@@ -18,6 +19,8 @@ export function hashFor(route: Route): string {
       return '';
     case 'list':
       return '#/memos';
+    case 'board':
+      return `#/memos/board/${route.boardId}`;
     case 'setup':
       return '#/new';
     case 'memo':
@@ -34,6 +37,9 @@ export function parseHash(hash: string): Route {
   const path = hash.replace(/^#/, '');
   if (path === '/memos') return { kind: 'list' };
   if (path === '/new') return { kind: 'setup' };
+
+  const board = path.match(/^\/memos\/board\/([\w-]+)$/);
+  if (board) return { kind: 'board', boardId: board[1] };
 
   const memo = path.match(/^\/memo\/([\w-]+)$/);
   if (memo) return { kind: 'memo', memoSetId: memo[1] };

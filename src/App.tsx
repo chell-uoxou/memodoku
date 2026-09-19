@@ -21,7 +21,7 @@ import './styles/global.css';
 
 type View =
   | { kind: 'home' }
-  | { kind: 'list' }
+  | { kind: 'list'; boardId: string | null }
   | { kind: 'setup'; input: SetupInput; id: string }
   | { kind: 'memo'; board: Board; memoSet: MemoSet }
   | { kind: 'share'; board: Board; memoSet: MemoSet };
@@ -32,7 +32,7 @@ function routeOf(view: View): Route {
     case 'home':
       return { kind: 'home' };
     case 'list':
-      return { kind: 'list' };
+      return view.boardId ? { kind: 'board', boardId: view.boardId } : { kind: 'list' };
     case 'setup':
       return { kind: 'setup' };
     case 'memo':
@@ -143,11 +143,17 @@ export default function App() {
 
       // 深い URL で開かれたときは、そこまでの履歴を積み直して戻れるようにする
       const restored: View[] = [{ kind: 'home' }];
-      if (route.kind === 'list') restored.push({ kind: 'list' });
+      if (route.kind === 'list') restored.push({ kind: 'list', boardId: null });
+      if (route.kind === 'board') {
+        restored.push({ kind: 'list', boardId: null });
+        if (boardMap.has(route.boardId)) {
+          restored.push({ kind: 'list', boardId: route.boardId });
+        }
+      }
       if (route.kind === 'memo') {
         const set = sets.find((m) => m.id === route.memoSetId);
         const board = set && boardMap.get(set.boardId);
-        restored.push({ kind: 'list' });
+        restored.push({ kind: 'list', boardId: null });
         if (set && board) restored.push({ kind: 'memo', board, memoSet: set });
       }
 
@@ -326,6 +332,7 @@ export default function App() {
       const set = memoSets.find((m) => m.id === id);
       const board = set && boards.get(set.boardId);
       if (!set || !board) return;
+      if (!window.confirm(`「${set.name}」を複製しますか？`)) return;
       const now = Date.now();
       const copy: MemoSet = {
         ...set,
@@ -340,6 +347,47 @@ export default function App() {
       push({ kind: 'memo', board, memoSet: copy });
     },
     [memoSets, boards, refresh, push],
+  );
+
+  /** 盤面名だけを変える */
+  const renameBoard = useCallback(
+    async (boardId: string, name: string) => {
+      const board = boards.get(boardId);
+      if (!board || board.label === name) return;
+      await db.putBoard({ ...board, label: name });
+      await refresh();
+      setStack((prev) =>
+        prev.map((v) =>
+          v.kind === 'memo' && v.board.id === boardId
+            ? { ...v, board: { ...v.board, label: name } }
+            : v,
+        ),
+      );
+    },
+    [boards, refresh],
+  );
+
+  /** その盤面で新しいメモを作って開く */
+  const newMemoOnBoard = useCallback(
+    async (boardId: string) => {
+      const board = boards.get(boardId);
+      if (!board) return;
+      const set = newMemoSet(board);
+      await db.putMemoSet(set);
+      await refresh();
+      push({ kind: 'memo', board, memoSet: set });
+    },
+    [boards, refresh, push],
+  );
+
+  /** 盤面とそのメモをまとめて消す */
+  const deleteBoard = useCallback(
+    async (boardId: string) => {
+      await db.deleteBoardWithMemoSets(boardId);
+      await refresh();
+      back();
+    },
+    [refresh, back],
   );
 
   /** 盤面名とメモ名の変更 */
@@ -478,7 +526,7 @@ export default function App() {
         onImport={() => fileInput.current?.click()}
         onPaste={() => void handlePaste()}
         onManual={() => push({ kind: 'setup', input: blankSetup(9), id: newId() })}
-        onOpenList={() => push({ kind: 'list' })}
+        onOpenList={() => push({ kind: 'list', boardId: null })}
       />
     );
   }
@@ -501,6 +549,14 @@ export default function App() {
         if (set && board) prepareShare(board, set);
       }}
       onBack={back}
+      openBoardId={view.kind === 'list' ? view.boardId : null}
+      onOpenBoard={(boardId) => {
+        if (boardId) push({ kind: 'list', boardId });
+        else back();
+      }}
+      onRenameBoard={(boardId, name) => void renameBoard(boardId, name)}
+      onNewMemo={(boardId) => void newMemoOnBoard(boardId)}
+      onDeleteBoard={(boardId) => void deleteBoard(boardId)}
     />
   );
   })();
