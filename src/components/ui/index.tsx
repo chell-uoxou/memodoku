@@ -43,7 +43,7 @@ export function Sheet({
   const keyboard = useKeyboardInset();
   return (
     <>
-      <div className={s.backdrop} onPointerDown={onClose} />
+      <div className={s.backdrop} onClick={onClose} />
       <div
         className={s.sheet}
         style={{

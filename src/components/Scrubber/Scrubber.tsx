@@ -108,7 +108,7 @@ export function Scrubber({
         <>
           <div
             style={{ position: 'fixed', inset: 0, zIndex: 4 }}
-            onPointerDown={() => setMenu(null)}
+            onClick={() => setMenu(null)}
           />
           <div className={s.menu}>
             <button

@@ -294,7 +294,7 @@ export function Setup({
       </div>
 
       {showImage && input.imageUrl && (
-        <div className={s.imageSheet} onPointerDown={() => setShowImage(false)}>
+        <div className={s.imageSheet} onClick={() => setShowImage(false)}>
           <img src={input.imageUrl} alt="読み込んだスクリーンショット" draggable={false} />
           <div className={s.imageBottom}>
             <button className={s.check} onClick={() => setShowImage(false)}>

@@ -32,7 +32,7 @@ export function SaveSheet({
         onChange={(e) => setBoard(e.target.value)}
       />
       <div className={ui.fieldLabel} style={{ paddingTop: 14 }}>
-        メモセット名
+        メモ名
       </div>
       <input
         className={ui.field}

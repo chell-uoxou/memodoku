@@ -73,9 +73,10 @@ export function MemoScreen({
           <BackIcon size={16} />
         </IconButton>
         <span className={s.label}>
-          {board.label || '名前なしの盤面'}
+          {memoSet.name}
           <span className={s.sub}>
-            メモ {memoSet.activeIndex + 1}/{memoSet.memos.length} · {board.n}×{board.n}
+            {board.label || '名前なしの盤面'} · {board.n}×{board.n} ·{' '}
+            {memoSet.activeIndex + 1}/{memoSet.memos.length}枚
           </span>
         </span>
         {!saved && onSave && (

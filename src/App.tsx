@@ -8,6 +8,8 @@ import { formatToday, newId, newMemoSet } from './state/memoSet';
 import { suppressBrowserGestures } from './gestures';
 import * as db from './db/db';
 import { decodeShare, encodeShare, readSharePayload, shareUrl } from './share/codec';
+import { shareLink } from './share/send';
+import { Toast } from './components/ui/Toast';
 import { importScreenshot, pickImage, readClipboardImage } from './vision/import';
 import { Busy } from './components/ui/Busy';
 import { useBeforeUnload } from './state/unsaved';
@@ -26,6 +28,7 @@ export default function App() {
   const [boards, setBoards] = useState<Map<string, Board>>(new Map());
   const [memoSets, setMemoSets] = useState<MemoSet[]>([]);
   const [busy, setBusy] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
   const autosave = useRef<number | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   const imageUrl = useRef<string | null>(null);
@@ -163,21 +166,23 @@ export default function App() {
     [refresh],
   );
 
+  const share = useCallback(async (board: Board, memoSet: MemoSet) => {
+    const payload = await encodeShare(board, memoSet);
+    const message = await shareLink(shareUrl(payload), memoSet.name);
+    if (message) {
+      navigator.vibrate?.(8);
+      setToast(message);
+    }
+  }, []);
+
   const copyLink = useCallback(
     async (id: string) => {
       const set = memoSets.find((m) => m.id === id);
       if (!set) return;
       const board = boards.get(set.boardId);
-      if (!board) return;
-      const payload = await encodeShare(board, set);
-      try {
-        await navigator.clipboard.writeText(shareUrl(payload));
-        navigator.vibrate?.(8);
-      } catch {
-        /* クリップボードが使えない環境では何もしない */
-      }
+      if (board) await share(board, set);
     },
-    [memoSets, boards],
+    [memoSets, boards, share],
   );
 
   const screen = (() => {
@@ -220,16 +225,7 @@ export default function App() {
         onSave={(memoSet, boardName, setName) =>
           void saveNow(view.board, memoSet, boardName, setName)
         }
-        onShare={(memoSet) =>
-          void encodeShare(view.board, memoSet).then(async (payload) => {
-            try {
-              await navigator.clipboard.writeText(shareUrl(payload));
-              navigator.vibrate?.(8);
-            } catch {
-              /* 無視 */
-            }
-          })
-        }
+        onShare={(memoSet) => void share(view.board, memoSet)}
       />
     );
   }
@@ -276,8 +272,6 @@ export default function App() {
         const board = boards.get(set.boardId);
         if (board) setView({ kind: 'memo', board, memoSet: set, saved: true });
       }}
-      onNew={() => setView({ kind: 'setup', input: blankSetup(9), id: newId() })}
-      onImport={() => fileInput.current?.click()}
       onRename={(id, name) => {
         const set = memoSets.find((m) => m.id === id);
         if (!set) return;
@@ -310,6 +304,7 @@ export default function App() {
       <ImagePicker inputRef={fileInput} onPick={handleImage} />
       {screen}
       {busy && <Busy label="スクショを読み取っています" />}
+      {toast && <Toast message={toast} onDone={() => setToast(null)} />}
     </>
   );
 }

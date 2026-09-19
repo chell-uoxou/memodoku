@@ -40,7 +40,7 @@ export function Home({
 
       <button className={s.secondary} onClick={onPaste}>
         <ClipboardIcon />
-        <span className={s.grow}>クリップボードから貼り付け</span>
+        <span className={s.grow}>クリップボードから読み込み</span>
         <span className={s.chevron}>
           <ChevronRightIcon size={17} />
         </span>
