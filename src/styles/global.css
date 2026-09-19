@@ -1,0 +1,64 @@
+:root {
+  --bg: #f6efe7;
+  --card: #ffffff;
+  --ink: #6e4b3a;
+  --ink-weak: #a98e7e;
+  --line: #eadfd3;
+  --accent: #f0a868; /* 猫セルのハイライト */
+  --mark: #ffffff; /* バツのストローク */
+  --radius-card: 22px;
+  --radius-cell: 12%; /* セル辺長に対する比率 */
+  --shadow: 0 2px 8px rgba(110, 75, 58, 0.12);
+  --danger: #d9534f;
+
+  --font: 'Hiragino Maru Gothic ProN', 'Zen Maru Gothic', system-ui, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  overscroll-behavior: none;
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font);
+  font-weight: 600;
+  -webkit-font-smoothing: antialiased;
+  position: fixed;
+  overflow: hidden;
+  inset: 0;
+}
+
+#root {
+  height: 100dvh;
+  width: 100%;
+}
+
+button {
+  font-family: inherit;
+  font-weight: inherit;
+  color: inherit;
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+input {
+  font-family: inherit;
+  font-weight: inherit;
+  color: inherit;
+}
+
+img {
+  -webkit-user-drag: none;
+}

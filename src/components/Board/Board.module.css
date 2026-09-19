@@ -1,0 +1,70 @@
+.wrap {
+  width: 100%;
+  aspect-ratio: 1;
+  display: grid;
+  grid-template-columns: repeat(var(--n), 1fr);
+  gap: calc(4% / var(--n));
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.wrap img,
+.wrap svg {
+  pointer-events: none;
+}
+
+.cell {
+  position: relative;
+  border-radius: var(--radius-cell);
+  display: grid;
+  place-items: center;
+}
+
+.cell svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.cat {
+  background: var(--accent) !important;
+}
+
+.imported {
+  opacity: 0.45;
+}
+
+.fade {
+  transition: opacity 120ms ease;
+}
+
+.violation::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  border: 1.5px solid var(--danger);
+  pointer-events: none;
+}
+
+.highlight::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: #fff;
+  opacity: 0.28;
+  pointer-events: none;
+}
+
+.unknown {
+  background-image: repeating-linear-gradient(
+    45deg,
+    rgba(110, 75, 58, 0.22) 0 2px,
+    transparent 2px 6px
+  );
+  background-color: var(--card);
+}
