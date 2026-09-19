@@ -6,6 +6,7 @@ import { List } from './components/List/List';
 import { Home } from './components/Home/Home';
 import { formatToday, newId, newMemoSet, uniqueMemoName } from './state/memoSet';
 import { suppressBrowserGestures } from './gestures';
+import { emptyMarks } from './model/board';
 import * as db from './db/db';
 import { decodeShare, encodeShare, shareUrl } from './share/codec';
 import { shareLink } from './share/send';
@@ -390,6 +391,31 @@ export default function App() {
     [boards, refresh, push, nextName],
   );
 
+  /**
+   * 盤面をもとに新しい盤面を作る。
+   * Board.id は領域の形から作るハッシュなので、そのまま複製しても同じ盤面に戻ってしまう。
+   * 形を編集して初めて別の盤面になるので、作成画面をその盤面で開く。
+   */
+  const duplicateBoard = useCallback(
+    (boardId: string) => {
+      const board = boards.get(boardId);
+      if (!board) return;
+      push({
+        kind: 'setup',
+        id: newId(),
+        input: {
+          n: board.n,
+          regions: [...board.regions],
+          palette: [...board.palette],
+          imported: emptyMarks(board.n),
+          label: board.label,
+          kind: board.kind,
+        },
+      });
+    },
+    [boards, push],
+  );
+
   /** 盤面とそのメモをまとめて消す */
   const deleteBoard = useCallback(
     async (boardId: string) => {
@@ -566,6 +592,7 @@ export default function App() {
       }}
       onRenameBoard={(boardId, name) => void renameBoard(boardId, name)}
       onNewMemo={(boardId) => void newMemoOnBoard(boardId)}
+      onDuplicateBoard={duplicateBoard}
       onDeleteBoard={(boardId) => void deleteBoard(boardId)}
     />
   );

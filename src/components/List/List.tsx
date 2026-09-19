@@ -37,6 +37,8 @@ export type ListProps = {
   onOpenBoard: (boardId: string | null) => void;
   onRenameBoard: (boardId: string, name: string) => void;
   onNewMemo: (boardId: string) => void;
+  /** 盤面をもとに新しい盤面を作る（作成画面が開く） */
+  onDuplicateBoard: (boardId: string) => void;
   onDeleteBoard: (boardId: string) => void;
 };
 
@@ -54,6 +56,7 @@ export function List({
   onOpenBoard,
   onRenameBoard,
   onNewMemo,
+  onDuplicateBoard,
   onDeleteBoard,
 }: ListProps) {
   const [mode, setMode] = useStoredValue<'list' | 'tile'>('meowdoku-memo:listMode', 'list');
@@ -64,6 +67,7 @@ export function List({
   const [menu, setMenu] = useState<MemoSet | null>(null);
   const [renaming, setRenaming] = useState<MemoSet | null>(null);
   const [renamingBoard, setRenamingBoard] = useState<Board | null>(null);
+  const [boardMenu, setBoardMenu] = useState<Board | null>(null);
   const longPress = useRef<number | null>(null);
 
   const sorted = useMemo(
@@ -113,6 +117,31 @@ export function List({
 
   const boardNameOf = (boardId: string) => boards.get(boardId)?.label || '名前なしの盤面';
 
+  const confirmDeleteBoard = (board: Board) => {
+    const count = byBoard.get(board.id)?.length ?? 0;
+    if (window.confirm(`「${boardNameOf(board.id)}」とメモ ${count} 件をすべて削除しますか？`)) {
+      onDeleteBoard(board.id);
+    }
+  };
+
+  const boardPressHandlers = (board: Board) => ({
+    onPointerDown: () => {
+      clearPress();
+      longPress.current = window.setTimeout(() => {
+        longPress.current = null;
+        navigator.vibrate?.(8);
+        setBoardMenu(board);
+      }, LONG_PRESS_MS);
+    },
+    onPointerUp: clearPress,
+    onPointerCancel: clearPress,
+    onPointerLeave: clearPress,
+    onClick: () => {
+      if (boardMenu) return;
+      onOpenBoard(board.id);
+    },
+  });
+
   const openBoard = openBoardId ? boards.get(openBoardId) : undefined;
   const visible = openBoardId ? (byBoard.get(openBoardId) ?? []) : sorted;
   const showFolders = grouped === 'board' && !openBoardId;
@@ -156,20 +185,17 @@ export function List({
             >
               <PencilIcon size={16} />
             </IconButton>
+            <IconButton
+              small
+              onClick={() => onDuplicateBoard(openBoard.id)}
+              title="この盤面をもとに新しい盤面を作る"
+            >
+              <CopyIcon size={16} />
+            </IconButton>
             <IconButton small onClick={() => onNewMemo(openBoard.id)} title="この盤面で新しいメモ">
               <PlusIcon size={16} />
             </IconButton>
-            <IconButton
-              small
-              onClick={() => {
-                const count = byBoard.get(openBoard.id)?.length ?? 0;
-                const name = openBoard.label || '名前なしの盤面';
-                if (window.confirm(`「${name}」とメモ ${count} 件をすべて削除しますか？`)) {
-                  onDeleteBoard(openBoard.id);
-                }
-              }}
-              title="盤面を削除"
-            >
+            <IconButton small onClick={() => confirmDeleteBoard(openBoard)} title="盤面を削除">
               <TrashIcon size={16} />
             </IconButton>
           </>
@@ -211,7 +237,7 @@ export function List({
                 if (!board) return null;
                 const thumb = <Thumbnail board={board} marks={sets[0]?.memos[0]?.user} />;
                 return mode === 'list' ? (
-                  <button key={boardId} className={s.row} onClick={() => onOpenBoard(boardId)}>
+                  <button key={boardId} className={s.row} {...boardPressHandlers(board)}>
                     <Thumbnail board={board} marks={sets[0]?.memos[0]?.user} size={40} />
                     <span className={s.rowMain}>
                       <span className={s.rowTitle}>{boardNameOf(boardId)}</span>
@@ -222,7 +248,7 @@ export function List({
                     </span>
                   </button>
                 ) : (
-                  <button key={boardId} className={s.tile} onClick={() => onOpenBoard(boardId)}>
+                  <button key={boardId} className={s.tile} {...boardPressHandlers(board)}>
                     {thumb}
                     <span className={s.tileTitle}>{boardNameOf(boardId)}</span>
                     <span className={s.tileSub}>メモ {sets.length} 件</span>
@@ -314,13 +340,56 @@ export function List({
         />
       )}
 
+      {boardMenu && !renamingBoard && (
+        <Sheet onClose={() => setBoardMenu(null)} title={boardNameOf(boardMenu.id)}>
+          <button className={s.menuBtn} onClick={() => setRenamingBoard(boardMenu)}>
+            <PencilIcon size={17} />
+            盤面名を変更
+          </button>
+          <button
+            className={s.menuBtn}
+            onClick={() => {
+              onDuplicateBoard(boardMenu.id);
+              setBoardMenu(null);
+            }}
+          >
+            <CopyIcon size={17} />
+            複製（作成画面が開きます）
+          </button>
+          <button
+            className={s.menuBtn}
+            onClick={() => {
+              onNewMemo(boardMenu.id);
+              setBoardMenu(null);
+            }}
+          >
+            <PlusIcon size={17} />
+            この盤面で新しいメモ
+          </button>
+          <button
+            className={`${s.menuBtn} ${s.danger}`}
+            onClick={() => {
+              confirmDeleteBoard(boardMenu);
+              setBoardMenu(null);
+            }}
+          >
+            <TrashIcon size={17} />
+            削除
+          </button>
+        </Sheet>
+      )}
+
       {renamingBoard && (
         <BoardNameSheet
           name={renamingBoard.label}
-          onClose={() => setRenamingBoard(null)}
+          onClose={() => {
+            setRenamingBoard(null);
+            setBoardMenu(null);
+          }}
           onDone={(name) => {
             onRenameBoard(renamingBoard.id, name);
             setRenamingBoard(null);
+            setBoardMenu(null);
           }}
         />
       )}
