@@ -32,6 +32,21 @@ export function newMemoSet(board: Board, imported?: Marks, name?: string): MemoS
   };
 }
 
+/**
+ * 同じ名前のメモが既にあれば " - 1", " - 2" と連番を足す。
+ * 元の名前が既に連番付き（"9/19 - 2"）なら、その根っこから数え直す。
+ */
+export function uniqueMemoName(base: string, existing: Iterable<string>): string {
+  const taken = new Set(existing);
+  if (!taken.has(base)) return base;
+  // ぶつかったときだけ、末尾の連番を落として根っこから数え直す
+  const root = base.replace(/ - \d+$/, '').trim() || base;
+  for (let i = 1; ; i++) {
+    const candidate = `${root} - ${i}`;
+    if (!taken.has(candidate)) return candidate;
+  }
+}
+
 export function formatToday(t = Date.now()): string {
   const d = new Date(t);
   const p = (x: number) => String(x).padStart(2, '0');

@@ -4,7 +4,7 @@ import { blankSetup, Setup, type SetupInput } from './components/Setup/Setup';
 import { MemoSession } from './components/Memo/MemoSession';
 import { List } from './components/List/List';
 import { Home } from './components/Home/Home';
-import { newId, newMemoSet } from './state/memoSet';
+import { formatToday, newId, newMemoSet, uniqueMemoName } from './state/memoSet';
 import { suppressBrowserGestures } from './gestures';
 import * as db from './db/db';
 import { decodeShare, encodeShare, shareUrl } from './share/codec';
@@ -113,6 +113,12 @@ export default function App() {
   useBeforeUnload(view.kind === 'setup' && setupDirty);
 
   useEffect(suppressBrowserGestures, []);
+
+  /** 保存済みのメモと名前がぶつからないように連番を足す */
+  const nextName = useCallback(async (base: string) => {
+    const sets = await db.allMemoSets();
+    return uniqueMemoName(base, sets.map((m) => m.name));
+  }, []);
 
   const refresh = useCallback(async () => {
     const [b, m] = await Promise.all([db.allBoards(), db.allMemoSets()]);
@@ -300,14 +306,14 @@ export default function App() {
       const merged: Board = existing
         ? { ...existing, label: board.label || existing.label }
         : board;
-      const set = newMemoSet(merged, imported);
+      const set = newMemoSet(merged, imported, await nextName(formatToday()));
       await db.putBoard(merged);
       await db.putMemoSet(set);
       await refresh();
       // 確認画面には戻らないので履歴も差し替える
       replace({ kind: 'memo', board: merged, memoSet: set });
     },
-    [boards, refresh, replace],
+    [boards, refresh, replace, nextName],
   );
 
   /** 共有リンクから受け取ったものを自分の保存先に取り込む */
@@ -317,7 +323,11 @@ export default function App() {
       const merged: Board = existing
         ? { ...existing, label: boardName || existing.label }
         : { ...board, label: boardName };
-      const nextSet: MemoSet = { ...memoSet, name: setName, updatedAt: Date.now() };
+      const nextSet: MemoSet = {
+        ...memoSet,
+        name: await nextName(setName || formatToday()),
+        updatedAt: Date.now(),
+      };
       await db.putBoard(merged);
       await db.putMemoSet(nextSet);
       await refresh();
@@ -337,7 +347,7 @@ export default function App() {
       const copy: MemoSet = {
         ...set,
         id: newId(),
-        name: `${set.name} のコピー`,
+        name: await nextName(set.name),
         memos: set.memos.map((m) => ({ ...m, id: newId(), user: m.user.slice() as Marks })),
         createdAt: now,
         updatedAt: now,
@@ -346,7 +356,7 @@ export default function App() {
       await refresh();
       push({ kind: 'memo', board, memoSet: copy });
     },
-    [memoSets, boards, refresh, push],
+    [memoSets, boards, refresh, push, nextName],
   );
 
   /** 盤面名だけを変える */
@@ -372,12 +382,12 @@ export default function App() {
     async (boardId: string) => {
       const board = boards.get(boardId);
       if (!board) return;
-      const set = newMemoSet(board);
+      const set = newMemoSet(board, undefined, await nextName(formatToday()));
       await db.putMemoSet(set);
       await refresh();
       push({ kind: 'memo', board, memoSet: set });
     },
-    [boards, refresh, push],
+    [boards, refresh, push, nextName],
   );
 
   /** 盤面とそのメモをまとめて消す */
