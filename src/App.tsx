@@ -9,7 +9,8 @@ import { suppressBrowserGestures } from './gestures';
 import { emptyMarks } from './model/board';
 import * as db from './db/db';
 import { decodeShare, encodeShare, shareUrl } from './share/codec';
-import { saveImage, shareLink } from './share/send';
+import { saveImage, shareLink, type SharePayload } from './share/send';
+import { SharePreview } from './components/Save/SharePreview';
 import { boardImageName, renderBoardPng } from './share/image';
 import { Toast } from './components/ui/Toast';
 import { importScreenshot, pickImage, readClipboardImage } from './vision/import';
@@ -537,20 +538,14 @@ export default function App() {
     [buildShare],
   );
 
+  /** 共有の確認ダイアログに出す内容 */
+  const [sharePreview, setSharePreview] = useState<SharePayload | null>(null);
+
   const share = useCallback(
-    (board: Board, memoSet: MemoSet) => {
-      const entry = shareCache.current.get(shareKey(memoSet));
-      if (!entry) {
-        // まだ準備できていないときは作りながら待つ（リンクだけになることがある）
-        setToast('共有の準備をしています');
-        void buildShare(board, memoSet);
-        return;
-      }
-      void shareLink(entry.url, memoSet.name, entry.image).then((message) => {
-        if (!message) return;
-        navigator.vibrate?.(8);
-        setToast(message);
-      });
+    async (board: Board, memoSet: MemoSet) => {
+      const entry =
+        shareCache.current.get(shareKey(memoSet)) ?? (await buildShare(board, memoSet));
+      setSharePreview({ title: memoSet.name, url: entry.url, image: entry.image });
     },
     [buildShare],
   );
@@ -578,7 +573,7 @@ export default function App() {
       const set = memoSets.find((m) => m.id === id);
       if (!set) return;
       const board = boards.get(set.boardId);
-      if (board) share(board, set);
+      if (board) void share(board, set);
     },
     [memoSets, boards, share],
   );
@@ -619,7 +614,7 @@ export default function App() {
         onBack={back}
         onChange={handleChange}
         onRename={(memoName, boardName) => void rename(view.memoSet.id, memoName, boardName)}
-        onShare={(memoSet) => share(view.board, memoSet)}
+        onShare={(memoSet) => void share(view.board, memoSet)}
         onSaveImage={(memoSet) => saveBoardImage(view.board, memoSet)}
       />
     );
@@ -694,6 +689,21 @@ export default function App() {
       {screen}
       {busy && <Busy label="スクショを読み取っています" />}
       {dialog}
+      {sharePreview && (
+        <SharePreview
+          payload={sharePreview}
+          onClose={() => setSharePreview(null)}
+          onShare={() => {
+            const payload = sharePreview;
+            setSharePreview(null);
+            void shareLink(payload).then((message) => {
+              if (!message) return;
+              navigator.vibrate?.(8);
+              setToast(message);
+            });
+          }}
+        />
+      )}
       {toast && <Toast message={toast} onDone={() => setToast(null)} />}
     </>
   );

@@ -9,7 +9,7 @@ import {
   FolderIcon,
   FolderOpenIcon,
   GridIcon,
-  LinkIcon,
+  ShareIcon,
   ListIcon,
   MoreIcon,
   PencilIcon,
@@ -315,8 +315,8 @@ export function List({
               setMenu(null);
             }}
           >
-            <LinkIcon size={17} />
-            共有リンクをコピー
+            <ShareIcon size={17} />
+            画像とリンクを共有
           </button>
           <button
             className={`${s.menuBtn} ${s.danger}`}
