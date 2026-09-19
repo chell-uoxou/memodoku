@@ -150,6 +150,26 @@ export function useMemoSet(initial: MemoSet, n: number, regions: number[]) {
     bump((x) => x + 1);
   }, [memoSet, history, writeMemo]);
 
+  /**
+   * 読み込んだ時点から中身が変わっているメモの id。
+   * 共有リンクで開いたときに「共有されたものと違う」ことを示すために使う。
+   */
+  const changedIds = useMemo(() => {
+    const base = new Map(initialRef.current.memos.map((m) => [m.id, m.user]));
+    const out = new Set<string>();
+    for (const memo of memoSet.memos) {
+      const before = base.get(memo.id);
+      if (!before) {
+        if (memo.user.some((m) => m !== EMPTY)) out.add(memo.id);
+        continue;
+      }
+      if (before.length !== memo.user.length || before.some((v, i) => v !== memo.user[i])) {
+        out.add(memo.id);
+      }
+    }
+    return out;
+  }, [memoSet]);
+
   const canUndo = history(active.id).undo.length > 0;
   const canRedo = history(active.id).redo.length > 0;
 
@@ -219,6 +239,7 @@ export function useMemoSet(initial: MemoSet, n: number, regions: number[]) {
       redo,
       canUndo,
       canRedo,
+      changedIds,
       toggleImported,
       setActiveIndex,
       addMemo,
@@ -234,6 +255,7 @@ export function useMemoSet(initial: MemoSet, n: number, regions: number[]) {
       redo,
       canUndo,
       canRedo,
+      changedIds,
       toggleImported,
       setActiveIndex,
       addMemo,

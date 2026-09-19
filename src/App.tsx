@@ -27,6 +27,13 @@ type View =
   | { kind: 'memo'; board: Board; memoSet: MemoSet }
   | { kind: 'share'; board: Board; memoSet: MemoSet };
 
+/** 共有リンクで受け取った盤面は、自分の盤面と見分けが付くように名前を変えておく */
+function sharedLabel(label: string): string {
+  const name = label.trim();
+  if (!name) return 'Shared';
+  return name.startsWith('Shared - ') ? name : `Shared - ${name}`;
+}
+
 /** 画面から、URL に載せるルートを取り出す */
 function routeOf(view: View): Route {
   switch (view.kind) {
@@ -155,7 +162,8 @@ export default function App() {
         const out = await decodeShare(route.payload);
         if (!alive) return;
         if (out) {
-          setStack([{ kind: 'share', board: out.board, memoSet: out.memoSet }]);
+          const board = { ...out.board, label: sharedLabel(out.board.label) };
+          setStack([{ kind: 'share', board, memoSet: out.memoSet }]);
           history.replaceState({ depth: 1 }, '', location.href);
           return;
         }
@@ -590,10 +598,6 @@ export default function App() {
         initialMemoSet={view.memoSet}
         onReset
         existingBoardName={existing?.label}
-        onBack={() => {
-          history.replaceState({ depth: 1 }, '', location.pathname);
-          navigate('pop', () => setStack([{ kind: 'home' }]));
-        }}
         onSave={(memoSet, boardName, setName) => {
           history.replaceState({ depth: 1 }, '', location.pathname);
           void importShared(view.board, memoSet, boardName, setName);

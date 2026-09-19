@@ -22,7 +22,8 @@ export type MemoScreenProps = {
   board: Board;
   store: ReturnType<typeof useMemoSet>;
   settings: Settings;
-  onBack: () => void;
+  /** 共有リンクで開いたときは戻り先が無いので渡さない */
+  onBack?: () => void;
   onOpenSettings: () => void;
   /** 名前を変更する（保存済みのメモ） */
   onEdit?: () => void;
@@ -72,9 +73,11 @@ export function MemoScreen({
   return (
     <div className={s.root}>
       <div className={s.top}>
-        <IconButton onClick={onBack} small title="戻る">
-          <BackIcon size={16} />
-        </IconButton>
+        {onBack && (
+          <IconButton onClick={onBack} small title="戻る">
+            <BackIcon size={16} />
+          </IconButton>
+        )}
         <span className={s.label}>
           {memoSet.name}
           <span className={s.sub}>
@@ -104,7 +107,7 @@ export function MemoScreen({
         <span className={s.grow} />
         {onReset && (
           <button
-            className={s.reset}
+            className={`${s.reset} ${confirmReset ? s.resetConfirm : ''}`}
             onClick={() => {
               if (confirmReset) {
                 onReset();
@@ -158,6 +161,8 @@ export function MemoScreen({
 
       <Scrubber
         memos={memoSet.memos}
+        // 共有リンクで開いたときだけ、共有時から変わったメモに点を付ける
+        markChanged={onReset ? store.changedIds : undefined}
         activeIndex={memoSet.activeIndex}
         onSelect={store.setActiveIndex}
         onAdd={store.addMemo}

@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Memo } from '../../model/types';
-import { EMPTY } from '../../model/types';
 import s from './Scrubber.module.css';
 
 const ITEM = 40;
@@ -15,6 +14,11 @@ export type ScrubberProps = {
   onAdd: () => void;
   onDuplicate: (index: number) => void;
   onDelete: (index: number) => void;
+  /**
+   * 点を付けるメモの id。渡さなければ点は出ない。
+   * 共有リンクで開いた盤面で「共有されたものと違う」ことを示すためだけに使う。
+   */
+  markChanged?: Set<string>;
 };
 
 export function Scrubber({
@@ -24,6 +28,7 @@ export function Scrubber({
   onAdd,
   onDuplicate,
   onDelete,
+  markChanged,
 }: ScrubberProps) {
   const track = useRef<HTMLDivElement>(null);
   const [offset, setOffset] = useState(0);
@@ -97,7 +102,7 @@ export function Scrubber({
             }}
           >
             {k + 1}
-            {memo.user.some((m) => m !== EMPTY) && <span className={s.dot} />}
+            {markChanged?.has(memo.id) && <span className={s.dot} />}
           </button>
         ))}
         <button className={`${s.item} ${s.add}`} onClick={onAdd}>

@@ -19,7 +19,7 @@ export function MemoSession({
 }: {
   board: Board;
   initialMemoSet: MemoSet;
-  onBack: () => void;
+  onBack?: () => void;
   onChange?: (memoSet: MemoSet) => void;
   /** 保存済みのメモの名前を変える（鉛筆ボタン） */
   onRename?: (memoName: string, boardName: string) => void;
