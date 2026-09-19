@@ -1,0 +1,14 @@
+.home {
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  padding: 10px 14px calc(10px + env(safe-area-inset-bottom));
+}
+
+.fab {
+  position: fixed;
+  right: 18px;
+  bottom: calc(18px + env(safe-area-inset-bottom));
+  display: flex;
+  gap: 10px;
+}

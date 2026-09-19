@@ -116,3 +116,60 @@ export function makeBoard(
 ): Board {
   return { id, n, regions, palette, label, kind };
 }
+
+/** 各領域の最大連結成分に含まれないセル（＝連結性を壊しているセル） */
+export function disconnectedCells(regions: (number | null)[], n: number): Set<number> {
+  const bad = new Set<number>();
+  const groups = new Map<number, number[]>();
+  for (let i = 0; i < regions.length; i++) {
+    const v = regions[i];
+    if (v == null) continue;
+    const g = groups.get(v);
+    if (g) g.push(i);
+    else groups.set(v, [i]);
+  }
+  for (const [region, cells] of groups) {
+    const set = new Set(cells);
+    const seen = new Set<number>();
+    let largest: number[] = [];
+    for (const start of cells) {
+      if (seen.has(start)) continue;
+      const comp: number[] = [];
+      const stack = [start];
+      seen.add(start);
+      while (stack.length) {
+        const cur = stack.pop()!;
+        comp.push(cur);
+        for (const nb of neighbors4(cur, n)) {
+          if (set.has(nb) && !seen.has(nb) && regions[nb] === region) {
+            seen.add(nb);
+            stack.push(nb);
+          }
+        }
+      }
+      if (comp.length > largest.length) largest = comp;
+    }
+    const keep = new Set(largest);
+    for (const c of cells) if (!keep.has(c)) bad.add(c);
+  }
+  return bad;
+}
+
+/** 手動作成時のフォールバックパレット（スクショがある場合はそちらを使う） */
+export function fallbackPalette(n: number): string[] {
+  return Array.from({ length: n }, (_, k) => hsl((k * 360) / n + 14, 52, 63));
+}
+
+function hsl(h: number, sPct: number, lPct: number): string {
+  const s = sPct / 100;
+  const l = lPct / 100;
+  const a = s * Math.min(l, 1 - l);
+  const f = (k: number) => {
+    const x = (k + h / 30) % 12;
+    const v = l - a * Math.max(-1, Math.min(x - 3, Math.min(9 - x, 1)));
+    return Math.round(255 * v)
+      .toString(16)
+      .padStart(2, '0');
+  };
+  return `#${f(0)}${f(8)}${f(4)}`;
+}

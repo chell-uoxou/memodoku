@@ -32,6 +32,7 @@ export type BoardProps = {
 type Gesture = {
   mode: 'paint' | 'erase' | 'none';
   visited: Set<number>;
+  last: { x: number; y: number };
 };
 
 export function Board({
@@ -53,6 +54,7 @@ export function Board({
   const gesture = useRef<Gesture | null>(null);
   const lastCross = useRef<{ i: number; t: number } | null>(null);
   const longPress = useRef<number | null>(null);
+  const downPos = useRef<{ x: number; y: number } | null>(null);
   const [highlight, setHighlight] = useState<number | null>(null);
 
   /** ドラッグ中のセル判定は elementFromPoint ではなく BBox とピッチから計算する */
@@ -90,6 +92,7 @@ export function Board({
     const i = cellAt(e.clientX, e.clientY);
     if (i === null) return;
     e.currentTarget.setPointerCapture(e.pointerId);
+    downPos.current = { x: e.clientX, y: e.clientY };
 
     if (onCellLongPress) {
       longPress.current = window.setTimeout(() => {
@@ -105,13 +108,13 @@ export function Board({
     }
 
     if (onCellPaint) {
-      gesture.current = { mode: 'paint', visited: new Set([i]) };
+      gesture.current = { mode: 'paint', visited: new Set([i]), last: { x: e.clientX, y: e.clientY } };
       onCellPaint(i);
       return;
     }
 
     if (locked(i) || !onStroke) {
-      gesture.current = { mode: 'none', visited: new Set([i]) };
+      gesture.current = { mode: 'none', visited: new Set([i]), last: { x: e.clientX, y: e.clientY } };
       return;
     }
 
@@ -144,18 +147,37 @@ export function Board({
       lastCross.current = { i, t: now };
     }
 
-    gesture.current = { mode, visited: new Set([i]) };
+    gesture.current = { mode, visited: new Set([i]), last: { x: e.clientX, y: e.clientY } };
     onStroke([action], 'start');
   };
 
   const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
     const g = gesture.current;
     if (!g) return;
-    const i = cellAt(e.clientX, e.clientY);
-    if (i === null || g.visited.has(i)) return;
-    clearLongPress();
-    g.visited.add(i);
+    // 指が少しでも動いたら長押し判定は取り下げる（同じセル内の移動でも）
+    const start = downPos.current;
+    if (start) {
+      const dx = e.clientX - start.x;
+      const dy = e.clientY - start.y;
+      if (dx * dx + dy * dy > 64) clearLongPress();
+    }
+    // 前回の座標からの線分を補間する。pointermove の間引きでセルを飛ばさないため
+    const box = ref.current?.getBoundingClientRect();
+    const step = box ? box.width / n / 2 : 8;
+    const dx = e.clientX - g.last.x;
+    const dy = e.clientY - g.last.y;
+    const steps = Math.max(1, Math.ceil(Math.hypot(dx, dy) / step));
+    for (let k = 1; k <= steps; k++) {
+      const i = cellAt(g.last.x + (dx * k) / steps, g.last.y + (dy * k) / steps);
+      if (i === null || g.visited.has(i)) continue;
+      clearLongPress();
+      g.visited.add(i);
+      handleCell(g, i);
+    }
+    g.last = { x: e.clientX, y: e.clientY };
+  };
 
+  const handleCell = (g: Gesture, i: number) => {
     if (onCellPaint) {
       onCellPaint(i);
       return;
@@ -171,6 +193,7 @@ export function Board({
 
   const endGesture = () => {
     clearLongPress();
+    downPos.current = null;
     gesture.current = null;
     setHighlight(null);
   };
