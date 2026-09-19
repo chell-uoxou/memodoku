@@ -1,5 +1,6 @@
 import type { Board, BoardKind, Marks } from './types';
 import { EMPTY } from './types';
+import { sha256 } from './sha256';
 
 export function emptyMarks(n: number): Marks {
   return new Array(n * n).fill(EMPTY) as Marks;
@@ -59,12 +60,24 @@ export function normalizeRegions(regions: number[]): number[] {
   return out;
 }
 
-/** 正規化した regions の SHA-256 先頭16文字 */
+/**
+ * 正規化した regions の SHA-256 先頭16文字。
+ * crypto.subtle はセキュアコンテキストにしか無いので、無ければ自前実装に落とす。
+ */
 export async function computeBoardId(regions: number[]): Promise<string> {
   const norm = normalizeRegions(regions);
   const bytes = new TextEncoder().encode(norm.join(','));
-  const digest = await crypto.subtle.digest('SHA-256', bytes);
-  return [...new Uint8Array(digest)]
+  let digest: Uint8Array;
+  try {
+    if (globalThis.crypto?.subtle) {
+      digest = new Uint8Array(await crypto.subtle.digest('SHA-256', bytes));
+    } else {
+      digest = sha256(bytes);
+    }
+  } catch {
+    digest = sha256(bytes);
+  }
+  return [...digest]
     .map((b) => b.toString(16).padStart(2, '0'))
     .join('')
     .slice(0, 16);
