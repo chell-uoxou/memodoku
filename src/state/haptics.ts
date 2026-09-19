@@ -26,6 +26,20 @@ const TICK_GAP_MS = 55;
 
 let enabled = readInitial();
 let lever: HTMLLabelElement | null = null;
+/** 指が画面に触れている最中か */
+let pointerDown = false;
+
+if (typeof document !== 'undefined') {
+  const down = () => {
+    pointerDown = true;
+  };
+  const up = () => {
+    pointerDown = false;
+  };
+  document.addEventListener('pointerdown', down, { capture: true, passive: true });
+  document.addEventListener('pointerup', up, { capture: true, passive: true });
+  document.addEventListener('pointercancel', up, { capture: true, passive: true });
+}
 
 function readInitial(): boolean {
   try {
@@ -40,6 +54,8 @@ function readInitial(): boolean {
 
 export function setHapticsEnabled(on: boolean) {
   enabled = on;
+  // 初回だけ生成が遅れて鳴らない、ということが無いよう先に作っておく
+  if (on && !canVibrate()) ensureLever();
 }
 
 export function hapticsEnabled(): boolean {
@@ -96,9 +112,13 @@ function fire(strength: Strength) {
     }
     const el = ensureLever();
     if (!el) return;
-    el.click();
+    // 盤面をなぞっている最中（pointerdown の処理中）に叩いても iOS が鳴らさないので、
+    // 指が触れているあいだは次のタスクに逃がしてから叩く
+    const tick = () => el.click();
+    const start = pointerDown ? () => window.setTimeout(tick, 0) : tick;
+    start();
     for (let k = 1; k < TICKS[strength]; k++) {
-      window.setTimeout(() => el.click(), TICK_GAP_MS * k);
+      window.setTimeout(tick, TICK_GAP_MS * k);
     }
   } catch {
     /* 触覚が出せなくても操作は続けられるので握りつぶす */

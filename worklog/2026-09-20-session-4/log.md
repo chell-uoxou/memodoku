@@ -26,3 +26,4 @@
 - 触覚が iOS で鳴らない件: web-haptics をやめて自前実装に（switch を display:none にしない）。設定に「試す」を追加
 - サービス名を memodoku に変更し、説明を「Meowdokuの盤面を読み込み、メモ、共有」にした
 - 表記を Memodoku（先頭大文字）に統一。ファイル名と package.json の name は小文字のまま
+- 盤面タップで触覚が鳴らない件: 指が触れている間は click を次のタスクに逃がすようにし、switch を先に生成するようにした
