@@ -29,7 +29,7 @@ export function Home({
         </span>
         <span>
           <div className={s.title}>Meowdoku Memo</div>
-          <div className={s.tagline}>ゲームでは置けないぶんのバツも置けるメモ帳</div>
+          <div className={s.tagline}>盤面を読み込み、メモ、共有</div>
         </span>
       </div>
 

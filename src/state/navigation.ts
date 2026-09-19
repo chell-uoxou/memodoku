@@ -1,6 +1,11 @@
 import { flushSync } from 'react-dom';
 
-export type NavDirection = 'push' | 'pop';
+/**
+ * 'none' はアニメーションなしで即座に切り替える。
+ * iOS Safari の戻るスワイプはブラウザ側が既に動きを見せているので、
+ * そのあとに自前の遷移を重ねると一拍遅れて二重に再生されてしまう。
+ */
+export type NavDirection = 'push' | 'pop' | 'none';
 
 type ViewTransition = {
   finished: Promise<void>;
@@ -27,6 +32,7 @@ export function navigate(direction: NavDirection, update: () => void) {
   const doc = document as WithViewTransition;
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const canAnimate =
+    direction !== 'none' &&
     typeof doc.startViewTransition === 'function' &&
     !reduceMotion &&
     document.visibilityState === 'visible';

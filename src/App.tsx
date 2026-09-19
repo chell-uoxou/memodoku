@@ -89,11 +89,27 @@ export default function App() {
     setStack((prev) => [...prev.slice(0, -1), next]);
   }, []);
 
+  /**
+   * 画面内の戻るボタンから履歴を戻したかどうか。
+   * iOS Safari の戻るスワイプはブラウザ自身がページを動かすので、
+   * そのうえに自前の遷移を重ねると一拍遅れて二重に見える。
+   * 明示的に押されたときだけアニメーションさせる。
+   */
+  const backPressed = useRef(false);
+
   /** 1つ戻る。実体はブラウザの履歴を戻すだけで、popstate 側が画面を切り替える */
   const back = useCallback(() => {
     if (!canLeave(stackRef.current[stackRef.current.length - 1])) return;
-    if (stackRef.current.length > 1) history.back();
-    else navigate('pop', () => setStack([{ kind: 'home' }]));
+    if (stackRef.current.length > 1) {
+      backPressed.current = true;
+      // popstate が来なかったときに取り残されないように戻しておく
+      window.setTimeout(() => {
+        backPressed.current = false;
+      }, 600);
+      history.back();
+    } else {
+      navigate('pop', () => setStack([{ kind: 'home' }]));
+    }
   }, [canLeave]);
 
   // 未保存の変更があるあいだはタブを閉じる前に確認する
@@ -161,6 +177,8 @@ export default function App() {
   // ブラウザの戻る / iOS のスワイプ
   useEffect(() => {
     const onPop = (e: PopStateEvent) => {
+      const byButton = backPressed.current;
+      backPressed.current = false;
       const depth = (e.state as { depth?: number } | null)?.depth ?? 1;
       const current = stackRef.current;
       if (depth >= current.length) return; // 進む方向は復元できないので何もしない
@@ -170,7 +188,8 @@ export default function App() {
         history.pushState({ depth: current.length }, '', urlFor(routeOf(current[current.length - 1])));
         return;
       }
-      navigate('pop', () => setStack(current.slice(0, depth)));
+      // スワイプで戻ったときはブラウザ側の動きに任せる
+      navigate(byButton ? 'pop' : 'none', () => setStack(current.slice(0, depth)));
     };
     window.addEventListener('popstate', onPop);
     return () => window.removeEventListener('popstate', onPop);
