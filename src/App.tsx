@@ -10,7 +10,7 @@ import { emptyMarks } from './model/board';
 import * as db from './db/db';
 import { decodeShare, encodeShare, shareUrl } from './share/codec';
 import { saveImage, shareLink } from './share/send';
-import { renderBoardPng } from './share/image';
+import { boardImageName, renderBoardPng } from './share/image';
 import { Toast } from './components/ui/Toast';
 import { importScreenshot, pickImage, readClipboardImage } from './vision/import';
 import { Busy } from './components/ui/Busy';
@@ -517,7 +517,7 @@ export default function App() {
       encodeShare(board, memoSet),
       renderBoardPng(board, marks),
     ]);
-    const name = `${board.label || 'meowdoku'}.png`.replace(/[\\/:*?"<>|]/g, '_');
+    const name = boardImageName(board.label, memoSet.name, memoSet.activeIndex + 1);
     const entry = {
       url: shareUrl(payload),
       image: png ? new File([png], name, { type: 'image/png' }) : null,

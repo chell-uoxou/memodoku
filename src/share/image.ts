@@ -92,3 +92,17 @@ function roundRect(
   ctx.arcTo(x, y, x + w, y, r);
   ctx.closePath();
 }
+
+/**
+ * 保存する画像のファイル名。「盤面名_メモ名_何枚目.png」。
+ * ファイル名に使えない文字は落とす（"2026/09/20" → "20260920"）。
+ */
+export function boardImageName(boardLabel: string, memoName: string, page: number): string {
+  const parts = [boardLabel, memoName, String(page)].map(fileSafe).filter(Boolean);
+  return `${parts.join('_') || 'meowdoku'}.png`;
+}
+
+function fileSafe(value: string): string {
+  // eslint-disable-next-line no-control-regex
+  return value.replace(/[\\/:*?"<>|\u0000-\u001f]/g, '').trim();
+}
