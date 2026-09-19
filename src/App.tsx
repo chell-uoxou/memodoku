@@ -77,6 +77,8 @@ export default function App() {
   /** §5 スクリーンショットから補正画面へ。読めなければ空の盤面を出す */
   const handleImage = useCallback(async (blob: Blob) => {
     setBusy(true);
+    // 解析はメインスレッドを塞ぐので、先にスピナーを描かせる
+    await new Promise((r) => requestAnimationFrame(() => r(null)));
     try {
       const input = await importScreenshot(blob).catch(() => null);
       if (imageUrl.current) URL.revokeObjectURL(imageUrl.current);
@@ -89,6 +91,12 @@ export default function App() {
     } finally {
       setBusy(false);
     }
+  }, []);
+
+  const dropImage = useCallback(() => {
+    if (!imageUrl.current) return;
+    URL.revokeObjectURL(imageUrl.current);
+    imageUrl.current = null;
   }, []);
 
   const handlePaste = useCallback(async () => {
@@ -179,8 +187,12 @@ export default function App() {
         key={view.id}
         input={view.input}
         onDirtyChange={setSetupDirty}
-        onCancel={() => setView({ kind: 'home' })}
+        onCancel={() => {
+          dropImage();
+          setView({ kind: 'home' });
+        }}
         onDone={(board: Board, imported: Marks) => {
+          dropImage();
           const existing = boards.get(board.id);
           const merged = existing ? { ...board, label: existing.label } : board;
           setView({
