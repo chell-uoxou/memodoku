@@ -110,6 +110,13 @@
   border-color: var(--accent);
 }
 
+.field:disabled {
+  color: var(--ink-weak);
+  background: var(--line);
+  opacity: 1;
+  -webkit-text-fill-color: var(--ink-weak);
+}
+
 .primary {
   width: 100%;
   border-radius: 16px;

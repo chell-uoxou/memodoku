@@ -32,12 +32,14 @@ export function SaveSheet({
       />
       <div className={ui.fieldLabel} style={{ paddingTop: 14 }}>
         盤面名（ゲームのレベル名）
-        {existing && <span className={ui.fieldNote}>保存済みの盤面と同じ形です</span>}
+        {existing && <span className={ui.fieldNote}>すでに同じ盤面が存在します</span>}
       </div>
       <input
         className={ui.field}
         value={board}
         placeholder="例: Level 62 / Daily 9/19"
+        // 既にある盤面に取り込むだけなので、ここから名前は変えさせない
+        disabled={existing}
         onChange={(e) => setBoard(e.target.value)}
       />
       <button className={ui.primary} onClick={() => onSubmit(board.trim(), name.trim() || setName)}>
