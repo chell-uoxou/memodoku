@@ -110,7 +110,7 @@ export function cellSignals(bmp: Bitmap, rect: Rect): CellSignals {
   };
 }
 
-export const X_CORRELATION_MIN = 0.6;
+export const X_CORRELATION_MIN = 0.5;
 
 export function classifyMark(signals: CellSignals): Mark {
   if (signals.blackRatio >= 0.02 && signals.clusters >= 3) return CAT;

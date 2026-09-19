@@ -7,6 +7,8 @@ import { formatToday, newId, newMemoSet } from './state/memoSet';
 import { suppressBrowserGestures } from './gestures';
 import * as db from './db/db';
 import { decodeShare, encodeShare, readSharePayload, shareUrl } from './share/codec';
+import { importScreenshot, pickImage } from './vision/import';
+import { blankSetup as blank } from './components/Setup/Setup';
 import './styles/global.css';
 
 type View =
@@ -20,6 +22,7 @@ export default function App() {
   const [boards, setBoards] = useState<Map<string, Board>>(new Map());
   const [memoSets, setMemoSets] = useState<MemoSet[]>([]);
   const autosave = useRef<number | null>(null);
+  const fileInput = useRef<HTMLInputElement>(null);
 
   useEffect(suppressBrowserGestures, []);
 
@@ -55,6 +58,37 @@ export default function App() {
     },
     [refresh],
   );
+
+  /** §5 スクリーンショットから補正画面へ。読めなければ空の盤面を出す */
+  const handleImage = useCallback(async (blob: Blob) => {
+    const input = await importScreenshot(blob).catch(() => null);
+    setView({ kind: 'setup', input: input ?? blank(9) });
+  }, []);
+
+  // ファイル選択・ドラッグ&ドロップ・クリップボード貼り付けの3経路
+  useEffect(() => {
+    const onPaste = (e: ClipboardEvent) => {
+      const blob = pickImage(e.clipboardData);
+      if (!blob) return;
+      e.preventDefault();
+      void handleImage(blob);
+    };
+    const onDrop = (e: DragEvent) => {
+      const blob = pickImage(e.dataTransfer);
+      if (!blob) return;
+      e.preventDefault();
+      void handleImage(blob);
+    };
+    const onDragOver = (e: DragEvent) => e.preventDefault();
+    document.addEventListener('paste', onPaste);
+    document.addEventListener('drop', onDrop);
+    document.addEventListener('dragover', onDragOver);
+    return () => {
+      document.removeEventListener('paste', onPaste);
+      document.removeEventListener('drop', onDrop);
+      document.removeEventListener('dragover', onDragOver);
+    };
+  }, [handleImage]);
 
   const saveNow = useCallback(
     async (board: Board, memoSet: MemoSet, boardName: string, setName: string) => {
@@ -155,6 +189,18 @@ export default function App() {
   }
 
   return (
+    <>
+      <input
+        ref={fileInput}
+        type="file"
+        accept="image/*"
+        style={{ display: 'none' }}
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          e.target.value = '';
+          if (file) void handleImage(file);
+        }}
+      />
     <List
       boards={boards}
       memoSets={memoSets}
@@ -163,7 +209,7 @@ export default function App() {
         if (board) setView({ kind: 'memo', board, memoSet: set, saved: true });
       }}
       onNew={() => setView({ kind: 'setup', input: blankSetup(9) })}
-      onImport={() => setView({ kind: 'setup', input: blankSetup(9) })}
+      onImport={() => fileInput.current?.click()}
       onRename={(id, name) => {
         const set = memoSets.find((m) => m.id === id);
         if (!set) return;
@@ -187,5 +233,6 @@ export default function App() {
       onDelete={(id) => void db.deleteMemoSetAndOrphanBoard(id).then(refresh)}
       onCopyLink={(id) => void copyLink(id)}
     />
+    </>
   );
 }

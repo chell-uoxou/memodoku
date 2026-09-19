@@ -4,6 +4,7 @@ import { analyzeBitmap } from '../src/vision/parse';
 import { findBoardRect, saturationMask, estimateN } from '../src/vision/grid';
 import { ciede2000, rgbToLab } from '../src/vision/color';
 import type { Mark } from '../src/model/types';
+import { normalizeRegions } from '../src/model/board';
 
 const PALETTE = [
   '#e07a5f',
@@ -68,14 +69,15 @@ describe('analyzeBitmap', () => {
 
     expect(out.n).toBe(n);
     expect(out.imported).toEqual(marks);
-    expect(out.regions).toEqual(regions);
+    // パレットの並び順は出現頻度で決まるので、区切り方が同じかどうかで見る
+    expect(normalizeRegions(out.regions as number[])).toEqual(normalizeRegions(regions));
     expect(out.palette).toHaveLength(n);
-    for (let k = 0; k < n; k++) {
-      const delta = ciede2000(
-        rgbToLab(...hex(out.palette[k])),
-        rgbToLab(...hex(palette[k])),
+    // パレットはセル色から起こすので並び順はチップ順とは限らない。集合として見る
+    for (const want of palette) {
+      const nearest = Math.min(
+        ...out.palette.map((got) => ciede2000(rgbToLab(...hex(got)), rgbToLab(...hex(want)))),
       );
-      expect(delta).toBeLessThan(6);
+      expect(nearest).toBeLessThan(6);
     }
   });
 
@@ -88,7 +90,7 @@ describe('analyzeBitmap', () => {
     });
     const out = analyzeBitmap(bmp);
     expect(out.imported.every((m) => m === 0)).toBe(true);
-    expect(out.regions).toEqual(regions);
+    expect(normalizeRegions(out.regions as number[])).toEqual(normalizeRegions(regions));
     expect(out.warnings).toEqual([]);
     expect(out.ok).toBe(true);
   });
@@ -98,8 +100,9 @@ describe('analyzeBitmap', () => {
     marks[n * 3 + 3] = 2; // 領域3の真ん中に猫
     const bmp = renderFixture({ n, regions, palette, marks });
     const out = analyzeBitmap(bmp);
-    expect(out.regions[n * 3 + 3]).toBe(3);
     expect(out.regions.some((r) => r == null)).toBe(false);
+    // 猫のセルが同じ行の他のセルと同じ領域に収まっていること
+    expect(out.regions[n * 3 + 3]).toBe(out.regions[n * 3]);
   });
 
   it('handles a 10x10 board', () => {

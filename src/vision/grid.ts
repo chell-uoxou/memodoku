@@ -47,33 +47,43 @@ export function dilate(mask: Uint8Array, width: number, height: number, r: numbe
 
 /**
  * §5.1-3 盤面候補。アスペクト比 0.9〜1.1 かつ画像幅の 60% 以上の最大成分。
- * 候補が複数残ったら投影の周期性が最もきれいに出るものを採用する。
+ * セル間ギャップの広さは端末やレベルで変わるので、閉じる半径を小さい方から
+ * 試して最初に square な成分が出たところを採る。
  */
 export function findBoardRect(bmp: Bitmap, mask: Uint8Array): Rect | null {
-  const r = Math.max(1, Math.round(Math.min(bmp.width, bmp.height) * 0.004));
-  const closed = dilate(mask, bmp.width, bmp.height, r);
-  const comps = connectedComponents(closed, bmp.width, bmp.height, 400).map((c) => ({
-    ...c,
-    // 膨張した分だけ縮めて元の盤面矩形に戻す
-    rect: { x: c.rect.x + r, y: c.rect.y + r, w: c.rect.w - 2 * r, h: c.rect.h - 2 * r },
-  }));
-  const candidates = comps.filter((c) => {
-    const aspect = c.rect.w / c.rect.h;
-    return aspect >= 0.9 && aspect <= 1.1 && c.rect.w >= bmp.width * 0.6;
-  });
-  if (!candidates.length) return null;
-  if (candidates.length === 1) return candidates[0].rect;
+  const base = Math.min(bmp.width, bmp.height);
+  const radii = [2, 3, 4, 6, 8, 10, 13, 16].map((k) => Math.max(1, Math.round((k * base) / 750)));
+  const seen = new Set<number>();
 
-  let best = candidates[0];
-  let bestScore = -Infinity;
-  for (const c of candidates) {
-    const score = periodicityScore(mask, bmp.width, c.rect);
-    if (score > bestScore) {
-      bestScore = score;
-      best = c;
+  for (const r of radii) {
+    if (seen.has(r)) continue;
+    seen.add(r);
+    const closed = dilate(mask, bmp.width, bmp.height, r);
+    const candidates = connectedComponents(closed, bmp.width, bmp.height, 400)
+      .map((c) => ({
+        ...c,
+        // 膨張した分だけ縮めて元の盤面矩形に戻す
+        rect: { x: c.rect.x + r, y: c.rect.y + r, w: c.rect.w - 2 * r, h: c.rect.h - 2 * r },
+      }))
+      .filter((c) => {
+        const aspect = c.rect.w / c.rect.h;
+        return aspect >= 0.9 && aspect <= 1.1 && c.rect.w >= bmp.width * 0.6;
+      });
+    if (!candidates.length) continue;
+    if (candidates.length === 1) return candidates[0].rect;
+
+    let best = candidates[0];
+    let bestScore = -Infinity;
+    for (const c of candidates) {
+      const score = periodicityScore(mask, bmp.width, c.rect);
+      if (score > bestScore) {
+        bestScore = score;
+        best = c;
+      }
     }
+    return best.rect;
   }
-  return best.rect;
+  return null;
 }
 
 /** 低彩度の帯（セル間ギャップ）の列方向プロファイル */
