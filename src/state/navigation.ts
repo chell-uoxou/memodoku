@@ -10,6 +10,8 @@ export type NavDirection = 'push' | 'pop' | 'none';
 type ViewTransition = {
   finished: Promise<void>;
   updateCallbackDone: Promise<void>;
+  /** 遷移が飛ばされると reject する。受けておかないとコンソールに未処理として出る */
+  ready?: Promise<void>;
 };
 
 type WithViewTransition = Document & {
@@ -61,6 +63,7 @@ export function navigate(direction: NavDirection, update: () => void) {
       flushSync(update);
     });
     transition.updateCallbackDone.catch(runOnce);
+    transition.ready?.catch(() => {});
     transition.finished.catch(() => {}).finally(cleanup);
   } catch {
     runOnce();

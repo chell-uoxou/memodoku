@@ -16,6 +16,7 @@ import { Toast } from './components/ui/Toast';
 import { importScreenshot, pickImage, readClipboardImage } from './vision/import';
 import { Busy } from './components/ui/Busy';
 import { useDialogs } from './components/ui/Dialog';
+import { haptics } from './state/haptics';
 import { navigate } from './state/navigation';
 import { parseHash, urlFor, type Route } from './state/router';
 import { useBeforeUnload } from './state/unsaved';
@@ -561,7 +562,7 @@ export default function App() {
       }
       void saveImage(image).then((message) => {
         if (!message) return;
-        navigator.vibrate?.(8);
+        haptics.notice();
         setToast(message);
       });
     },
@@ -698,7 +699,7 @@ export default function App() {
             setSharePreview(null);
             void shareLink(payload).then((message) => {
               if (!message) return;
-              navigator.vibrate?.(8);
+              haptics.notice();
               setToast(message);
             });
           }}

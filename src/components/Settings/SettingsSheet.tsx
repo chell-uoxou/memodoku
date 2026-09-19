@@ -31,6 +31,12 @@ export function SettingsSheet({
         onToggle={() => onToggle('rowColHighlight')}
       />
       <ToggleRow
+        label="触覚フィードバック"
+        hint="印を置いたときやメモを切り替えたときに短く震える"
+        on={settings.haptics}
+        onToggle={() => onToggle('haptics')}
+      />
+      <ToggleRow
         label="領域の境界線"
         hint="色の境目に白い線を引いて区切りを読みやすくする"
         on={settings.regionBoundaries}

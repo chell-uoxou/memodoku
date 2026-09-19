@@ -3,6 +3,7 @@ import type { Board, Mark, Marks, Memo, MemoSet } from '../model/types';
 import { CAT, EMPTY, CROSS } from '../model/types';
 import { emptyMarks } from '../model/board';
 import { autoExcludeTargets } from '../model/rules';
+import { haptics } from './haptics';
 import type { CellAction, StrokePhase } from '../components/Board/Board';
 
 export type Change = { i: number; from: Mark; to: Mark };
@@ -100,6 +101,9 @@ export function useMemoSet(initial: MemoSet, n: number, regions: number[]) {
       for (const a of actions) {
         const from = valueAt(a.i);
         if (from === a.to) continue;
+        // 印を付けるたびに手応えを返す。猫はバツより強く
+        if (a.to === CAT) haptics.cat();
+        else haptics.mark();
         changes.push({ i: a.i, from, to: a.to });
         staged.set(a.i, a.to);
 

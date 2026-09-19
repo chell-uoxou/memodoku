@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Memo } from '../../model/types';
+import { haptics } from '../../state/haptics';
 import s from './Scrubber.module.css';
 
 const ITEM = 40;
@@ -46,7 +47,7 @@ export function Scrubber({
     const index = Math.min(memos.length - 1, Math.max(0, Math.round(x / PITCH)));
     if (index !== lastReported.current) {
       lastReported.current = index;
-      navigator.vibrate?.(5);
+      haptics.select();
       onSelect(index);
     }
   }, [memos.length, onSelect]);
@@ -89,7 +90,7 @@ export function Scrubber({
               clearLongPress();
               longPress.current = window.setTimeout(() => {
                 longPress.current = null;
-                navigator.vibrate?.(8);
+                haptics.notice();
                 setMenu(k);
               }, LONG_PRESS_MS);
             }}

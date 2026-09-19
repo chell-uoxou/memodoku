@@ -1,5 +1,6 @@
 import { useMemo, useRef, useState } from 'react';
 import type { Board, MemoSet } from '../../model/types';
+import { haptics } from '../../state/haptics';
 import { useStoredValue } from '../../state/settings';
 import { IconButton, Sheet, ui } from '../ui';
 import {
@@ -105,7 +106,7 @@ export function List({
       clearPress();
       longPress.current = window.setTimeout(() => {
         longPress.current = null;
-        navigator.vibrate?.(8);
+        haptics.notice();
         openMenu(set);
       }, LONG_PRESS_MS);
     },
@@ -136,7 +137,7 @@ export function List({
       clearPress();
       longPress.current = window.setTimeout(() => {
         longPress.current = null;
-        navigator.vibrate?.(8);
+        haptics.notice();
         setBoardMenu(board);
       }, LONG_PRESS_MS);
     },

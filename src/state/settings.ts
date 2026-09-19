@@ -1,18 +1,21 @@
 import { useCallback, useEffect, useState } from 'react';
+import { setHapticsEnabled } from './haptics';
 
 export type Settings = {
   autoExclude: boolean;
   showViolations: boolean;
   rowColHighlight: boolean;
   regionBoundaries: boolean;
+  haptics: boolean;
 };
 
-/** §7.4 トグルは全て既定 OFF */
+/** §7.4 のトグルは全て既定 OFF。触覚だけは既定 ON にしている */
 export const DEFAULT_SETTINGS: Settings = {
   autoExclude: false,
   showViolations: false,
   rowColHighlight: false,
   regionBoundaries: false,
+  haptics: true,
 };
 
 const KEY = 'meowdoku-memo:settings';
@@ -36,6 +39,8 @@ export function useSettings() {
     } catch {
       /* プライベートブラウズ等では無視 */
     }
+    // どの画面から切り替えても即座に効くよう、モジュール側にも伝える
+    setHapticsEnabled(settings.haptics);
   }, [settings]);
 
   const toggle = useCallback((key: keyof Settings) => {

@@ -22,6 +22,7 @@ npm run build    # 静的ビルド（dist/）
 | `src/db/` | IndexedDB（`boards` / `memoSets`） |
 | `src/share/` | 共有URLのビットパックと base64url、共有用の盤面画像 |
 | `src/state/router.ts` | ハッシュだけを使うルーター（静的ホスティングで 404 にならない） |
+| `src/state/haptics.ts` | 触覚フィードバック（web-haptics 経由） |
 | `src/components/` | 画面（ホーム / 一覧 / 補正 / メモ / スクラバー / 設定 / 保存） |
 | `scripts/` | PWA アイコンの生成（`node scripts/make-icons.mjs`） |
 | `test/fixtures/shots/` | 実機スクショ。期待盤面は `test/shots.test.ts` に固定 |
@@ -104,6 +105,13 @@ URL は**ハッシュフラグメントだけ**を書き換えるので、`/memo
 確認や通知は `useDialogs`（`src/components/ui/Dialog.tsx`）の自前ダイアログで出す。
 `window.confirm` / `window.alert` は使わない（見た目を揃えるため、また iOS で
 ページ全体が固まるのを避けるため）。タブを閉じるときの `beforeunload` だけはブラウザのもの。
+
+## 触覚フィードバック
+
+印を置くたびに短く、猫を置いたときは強く、メモを切り替えたときに軽く震える。
+[web-haptics](https://github.com/lochie/web-haptics) を使っていて、`navigator.vibrate`
+が無い iOS Safari では隠した `<input type="checkbox" switch>` のラベルを叩く方式に
+自動で切り替わる。設定パネルのトグルで止められる（**ここだけ既定 ON**）。
 
 ## 実装メモ
 
