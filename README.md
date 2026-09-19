@@ -21,7 +21,8 @@ npm run build    # 静的ビルド（dist/）
 | `src/state/` | メモセットの状態、Undo/Redo、設定の localStorage 永続化 |
 | `src/db/` | IndexedDB（`boards` / `memoSets`） |
 | `src/share/` | 共有URLのビットパックと base64url |
-| `src/components/` | 画面（一覧 / 補正 / メモ / スクラバー / 設定 / 保存） |
+| `src/components/` | 画面（ホーム / 一覧 / 補正 / メモ / スクラバー / 設定 / 保存） |
+| `scripts/` | PWA アイコンの生成（`node scripts/make-icons.mjs`） |
 | `test/fixtures/shots/` | 実機スクショ。期待盤面は `test/shots.test.ts` に固定 |
 
 ## 画像解析の流れ
@@ -48,6 +49,14 @@ npm run build    # 静的ビルド（dist/）
   無いと共有先で色が変わってメモとして読めなくなる。
 - **既知の領域数 + 不明セル数 = N のとき、不明セルはそれぞれ単独の領域として確定させる。**
   数の上でそれ以外にあり得ないため。推測ではない。
+
+## 実装メモ
+
+- **Board.id の SHA-256 は `crypto.subtle` が無ければ自前実装に落ちる。** `crypto.subtle` は
+  セキュアコンテキスト（HTTPS か localhost）にしか生えないので、実機から LAN の http で
+  開いたときに完了ボタンが無反応になっていた。
+- 猫のシルエットは `src/components/ui/catPath.ts` の1本に統一している（盤面・サムネイル・
+  ホームのマーク・PWA アイコン）。
 
 ## まだ入れていないもの
 
