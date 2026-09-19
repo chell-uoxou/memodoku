@@ -23,15 +23,20 @@ const PATTERN: Record<Strength, number | number[]> = {
 /** iOS の switch は強さを変えられないので、強いときは短く2回鳴らす */
 const TICKS: Record<Strength, number> = { light: 1, medium: 1, heavy: 2 };
 const TICK_GAP_MS = 55;
+/** 指を離してから click を待つ時間 */
+const CLICK_WAIT_MS = 380;
 
 let enabled = readInitial();
 let lever: HTMLLabelElement | null = null;
 
 /**
  * 指が画面に触れている最中か。
+ *
  * iOS は pointerdown の処理の中で switch を叩いても鳴らない（次のタスクに逃がしても同じ）。
- * 唯一確実に鳴るのは「本物の click イベントの中で叩いたとき」なので、
- * なぞっている最中に要求された手応えは次の click まで持ち越す。
+ * 確実に鳴るのは「本物の click イベントの中で叩いたとき」なので、なぞっている最中に
+ * 要求された手応えは次の click まで持ち越す。
+ * click が来ないジェスチャ（ドラッグ、長押し、指が少し動いたタップ）もあるので、
+ * 指を離してしばらく click が来なければ、そのときは駄目元で鳴らしにいく。
  */
 let pointerDown = false;
 let pending: Strength | null = null;
@@ -49,11 +54,13 @@ if (typeof document !== 'undefined') {
   );
   const release = () => {
     pointerDown = false;
-    // click が来ないジェスチャ（ドラッグなど）で取り残さないように
     if (expiry !== null) clearTimeout(expiry);
+    // Safari は click を最大 350ms ほど遅らせることがあるので、それを待ってから諦める
     expiry = window.setTimeout(() => {
+      const strength = pending;
       pending = null;
-    }, 400);
+      if (strength) playTicks(strength);
+    }, CLICK_WAIT_MS);
   };
   document.addEventListener('pointerup', release, { capture: true, passive: true });
   document.addEventListener('pointercancel', release, { capture: true, passive: true });
@@ -61,6 +68,7 @@ if (typeof document !== 'undefined') {
     'click',
     () => {
       if (!pending) return;
+      if (expiry !== null) clearTimeout(expiry);
       const strength = pending;
       pending = null;
       playTicks(strength);
