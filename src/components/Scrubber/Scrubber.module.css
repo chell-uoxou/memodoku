@@ -1,0 +1,93 @@
+.root {
+  position: relative;
+  height: 56px;
+  flex: none;
+}
+
+.frame {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 44px;
+  height: 44px;
+  margin: -22px 0 0 -22px;
+  border: 1.5px solid var(--ink-weak);
+  border-radius: 12px;
+  pointer-events: none;
+}
+
+.track {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  touch-action: pan-x;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  padding: 0 calc(50% - 20px);
+}
+
+.track::-webkit-scrollbar {
+  display: none;
+}
+
+.item {
+  position: relative;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 11px;
+  background: var(--card);
+  box-shadow: var(--shadow);
+  display: grid;
+  place-items: center;
+  font-size: 15px;
+  scroll-snap-align: center;
+  will-change: transform;
+}
+
+.add {
+  scroll-snap-align: none;
+  font-size: 22px;
+  color: var(--ink-weak);
+}
+
+.dot {
+  position: absolute;
+  right: 5px;
+  bottom: 5px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.menu {
+  position: absolute;
+  bottom: 60px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--card);
+  border-radius: 14px;
+  box-shadow: var(--shadow);
+  display: flex;
+  overflow: hidden;
+  z-index: 5;
+}
+
+.menu button {
+  padding: 10px 18px;
+  font-size: 14px;
+}
+
+.menu button + button {
+  border-left: 1px solid var(--line);
+}
+
+.menu button:disabled {
+  color: var(--ink-weak);
+  opacity: 0.5;
+}
