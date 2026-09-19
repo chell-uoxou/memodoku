@@ -33,3 +33,14 @@
 .boardBox {
   width: min(100%, calc(100dvh - 190px));
 }
+
+.reset {
+  flex: none;
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 16px;
+  background: var(--card);
+  box-shadow: var(--shadow);
+  font-size: 13px;
+  white-space: nowrap;
+}

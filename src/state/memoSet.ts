@@ -40,6 +40,7 @@ export function formatToday(t = Date.now()): string {
 
 export function useMemoSet(initial: MemoSet, n: number, regions: number[]) {
   const [memoSet, setMemoSet] = useState<MemoSet>(initial);
+  const initialRef = useRef(initial);
   const histories = useRef(new Map<string, History>());
   const [, bump] = useState(0);
 
@@ -174,6 +175,24 @@ export function useMemoSet(initial: MemoSet, n: number, regions: number[]) {
     });
   }, []);
 
+  /** §11.3 共有ページのリセット。今見ているメモだけを初期状態に戻す */
+  const resetActive = useCallback(() => {
+    const index = memoSet.activeIndex;
+    const memo = memoSet.memos[index];
+    const source = initialRef.current.memos[index];
+    const target = (source ? source.user.slice() : emptyMarks(n)) as Marks;
+    const changes: Change[] = [];
+    for (let i = 0; i < target.length; i++) {
+      if (memo.user[i] !== target[i]) changes.push({ i, from: memo.user[i], to: target[i] });
+    }
+    if (!changes.length) return;
+    const h = history(memo.id);
+    h.undo.push(changes);
+    h.redo.length = 0;
+    writeMemo(memo.id, (m) => ({ ...m, user: target }));
+    bump((x) => x + 1);
+  }, [memoSet, n, history, writeMemo]);
+
   const api = useMemo(
     () => ({
       memoSet,
@@ -189,6 +208,7 @@ export function useMemoSet(initial: MemoSet, n: number, regions: number[]) {
       addMemo,
       duplicateMemo,
       deleteMemo,
+      resetActive,
     }),
     [
       memoSet,
@@ -203,6 +223,7 @@ export function useMemoSet(initial: MemoSet, n: number, regions: number[]) {
       addMemo,
       duplicateMemo,
       deleteMemo,
+      resetActive,
     ],
   );
 

@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Board, MemoSet } from '../../model/types';
 import { violatingCats } from '../../model/rules';
 import { Board as BoardView } from '../Board/Board';
@@ -26,6 +26,7 @@ export type MemoScreenProps = {
   onOpenSettings: () => void;
   onSave?: () => void;
   onShare?: () => void;
+  onReset?: () => void;
   saved?: boolean;
   /** MemoSet は表示用（store.memoSet と同じ） */
   memoSet: MemoSet;
@@ -39,10 +40,22 @@ export function MemoScreen({
   onOpenSettings,
   onSave,
   onShare,
+  onReset,
   saved,
   memoSet,
 }: MemoScreenProps) {
   const { active } = store;
+  const [confirmReset, setConfirmReset] = useState(false);
+  const resetTimer = useRef<number | null>(null);
+
+  // 3秒触らなければ元のラベルに戻る
+  useEffect(() => {
+    if (!confirmReset) return;
+    resetTimer.current = window.setTimeout(() => setConfirmReset(false), 3000);
+    return () => {
+      if (resetTimer.current !== null) clearTimeout(resetTimer.current);
+    };
+  }, [confirmReset]);
 
   const effective = useMemo(() => {
     if (!active.showImported) return active.user;
@@ -78,6 +91,21 @@ export function MemoScreen({
         <IconButton onClick={onOpenSettings} small title="設定">
           <GearIcon size={16} />
         </IconButton>
+        {onReset && (
+          <button
+            className={s.reset}
+            onClick={() => {
+              if (confirmReset) {
+                onReset();
+                setConfirmReset(false);
+              } else {
+                setConfirmReset(true);
+              }
+            }}
+          >
+            {confirmReset ? '本当に？' : 'リセット'}
+          </button>
+        )}
         {!saved && onSave && (
           <IconButton onClick={onSave} small title="保存">
             <SaveIcon size={16} />
