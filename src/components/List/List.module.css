@@ -180,5 +180,6 @@
 .chevron {
   color: var(--ink-weak);
   flex: none;
-  font-size: 18px;
+  display: grid;
+  place-items: center;
 }

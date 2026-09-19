@@ -5,6 +5,7 @@ import { useSettings } from '../../state/settings';
 import { SettingsSheet } from '../Settings/SettingsSheet';
 import { SaveSheet } from '../Save/SaveSheet';
 import { MemoScreen } from './MemoScreen';
+import { confirmDiscard } from '../../state/unsaved';
 
 export function MemoSession({
   board,
@@ -47,7 +48,11 @@ export function MemoSession({
         store={store}
         memoSet={store.memoSet}
         settings={settings}
-        onBack={onBack}
+        onBack={() => {
+          if (saved || confirmDiscard('このメモはまだ保存されていません。破棄しますか？')) {
+            onBack();
+          }
+        }}
         onOpenSettings={() => setSheet(true)}
         onSave={onSave ? () => setSaving(true) : undefined}
         onShare={onShare ? () => onShare(store.memoSet) : undefined}

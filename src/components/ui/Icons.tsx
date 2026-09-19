@@ -155,6 +155,26 @@ export const ShareIcon = ({ size = 18 }: P) => (
   </svg>
 );
 
+export const ChevronRightIcon = ({ size = 18 }: P) => (
+  <svg {...base(size)}>
+    <path d="m9.5 5 7 7-7 7" />
+  </svg>
+);
+
+export const ClipboardIcon = ({ size = 18 }: P) => (
+  <svg {...base(size)}>
+    <rect x="5" y="4" width="14" height="17" rx="2.5" />
+    <path d="M9 4.5A1.5 1.5 0 0 1 10.5 3h3A1.5 1.5 0 0 1 15 4.5V6H9z" />
+  </svg>
+);
+
+export const BrushIcon = ({ size = 18 }: P) => (
+  <svg {...base(size)}>
+    <path d="M4 20h4L19.5 8.5a2.1 2.1 0 0 0-3-3L5 17z" />
+    <path d="m14.5 6.5 3 3" />
+  </svg>
+);
+
 export const CheckIcon = ({ size = 18 }: P) => (
   <svg {...base(size)}>
     <path d="m5 12.5 4.5 4.5L19 7" />

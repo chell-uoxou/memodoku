@@ -26,8 +26,6 @@ export function CatGlyph() {
         strokeLinejoin="round"
         paintOrder="stroke"
       />
-      <circle cx="38" cy="58" r="4.8" fill="var(--mark)" />
-      <circle cx="62" cy="58" r="4.8" fill="var(--mark)" />
     </svg>
   );
 }

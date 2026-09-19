@@ -4,6 +4,7 @@ import { useStoredValue } from '../../state/settings';
 import { IconButton, Sheet, ui } from '../ui';
 import {
   BackIcon,
+  ChevronRightIcon,
   CopyIcon,
   FolderIcon,
   FolderOpenIcon,
@@ -156,7 +157,9 @@ export function List({
                     <span className={s.rowTitle}>{board.label || '名前なしの盤面'}</span>
                     <span className={s.rowSub}>メモセット {sets.length} 件</span>
                   </span>
-                  <span className={s.chevron}>›</span>
+                  <span className={s.chevron}>
+                    <ChevronRightIcon size={16} />
+                  </span>
                 </button>
               ) : (
                 <button key={boardId} className={s.tile} onClick={() => setOpenBoard(boardId)}>

@@ -1,5 +1,5 @@
-import { useMemo, useRef, useState } from 'react';
-import type { Board, BoardKind, Mark, Marks } from '../../model/types';
+import { useEffect, useMemo, useState } from 'react';
+import type { Board, BoardKind, Marks } from '../../model/types';
 import {
   computeBoardId,
   disconnectedCells,
@@ -8,9 +8,10 @@ import {
   validateBoard,
 } from '../../model/board';
 import { violatingCats } from '../../model/rules';
-import { Board as BoardView, type StrokePhase } from '../Board/Board';
+import { confirmDiscard } from '../../state/unsaved';
+import { Board as BoardView, type CellAction, type StrokePhase } from '../Board/Board';
 import { IconButton } from '../ui';
-import { BackIcon, RedoIcon, UndoIcon } from '../ui/Icons';
+import { BackIcon, BrushIcon, ImageIcon, RedoIcon, UndoIcon } from '../ui/Icons';
 import s from './Setup.module.css';
 
 export type SetupInput = {
@@ -20,6 +21,8 @@ export type SetupInput = {
   imported: Marks;
   label: string | null;
   kind: BoardKind;
+  /** 読み込んだスクショの ObjectURL。読み取り結果と見比べるために保持する */
+  imageUrl?: string;
 };
 
 export function blankSetup(n: number): SetupInput {
@@ -49,10 +52,13 @@ export function Setup({
   input,
   onCancel,
   onDone,
+  onDirtyChange,
 }: {
   input: SetupInput;
   onCancel: () => void;
   onDone: (board: Board, imported: Marks) => void;
+  /** 未保存の編集があるかを親に伝える（離脱確認のため） */
+  onDirtyChange?: (dirty: boolean) => void;
 }) {
   const [draft, setDraft] = useState<Draft>({
     n: input.n,
@@ -63,8 +69,9 @@ export function Setup({
   const [past, setPast] = useState<Draft[]>([]);
   const [future, setFuture] = useState<Draft[]>([]);
   const [label, setLabel] = useState(input.label ?? '');
-  const [selected, setSelected] = useState(0);
-  const lastPaint = useRef<{ i: number; prev: number | null } | null>(null);
+  /** 塗る色。'marks' のときはバツと猫を置くモードになる */
+  const [tool, setTool] = useState<number | 'marks'>(0);
+  const [showImage, setShowImage] = useState(false);
 
   const { n, regions, palette, imported } = draft;
 
@@ -98,33 +105,41 @@ export function Setup({
       palette: fallbackPalette(next),
       imported: emptyMarks(next),
     });
-    setSelected(0);
+    setTool(0);
   };
 
   const paint = (i: number, phase: StrokePhase) => {
-    lastPaint.current = { i, prev: regions[i] };
+    if (tool === 'marks') return;
     const apply = (prev: Draft): Draft => {
-      if (prev.regions[i] === selected) return prev;
+      if (prev.regions[i] === tool) return prev;
       const next = prev.regions.slice();
-      next[i] = selected;
+      next[i] = tool;
       return { ...prev, regions: next };
     };
     if (phase === 'start') commit(apply);
     else setDraft(apply);
   };
 
-  /** 長押し。直前に塗った領域を戻してから 空 → バツ → 猫 を回す */
-  const cycleMark = (i: number) => {
-    const revert = lastPaint.current;
-    setDraft((prev) => {
-      const regionsNext = prev.regions.slice();
-      if (revert && revert.i === i) regionsNext[i] = revert.prev;
-      const importedNext = prev.imported.slice() as Marks;
-      importedNext[i] = ((prev.imported[i] + 1) % 3) as Mark;
-      return { ...prev, regions: regionsNext, imported: importedNext };
-    });
-    lastPaint.current = null;
+  /** バツ・猫モード。メモ画面と同じ操作（タップ・ダブルタップ・ドラッグ）で編集する */
+  const strokeMarks = (actions: CellAction[], phase: StrokePhase) => {
+    const apply = (prev: Draft): Draft => {
+      const next = prev.imported.slice() as Marks;
+      let changed = false;
+      for (const a of actions) {
+        if (next[a.i] === a.to) continue;
+        next[a.i] = a.to;
+        changed = true;
+      }
+      return changed ? { ...prev, imported: next } : prev;
+    };
+    if (phase === 'start') commit(apply);
+    else setDraft(apply);
   };
+
+  const dirty = past.length > 0 || label !== (input.label ?? '');
+  useEffect(() => {
+    onDirtyChange?.(dirty);
+  }, [dirty, onDirtyChange]);
 
   const unknownCount = regions.reduce<number>((a, r) => a + (r == null ? 1 : 0), 0);
 
@@ -165,10 +180,16 @@ export function Setup({
   return (
     <div className={s.root}>
       <div className={s.top}>
-        <IconButton onClick={onCancel} small title="戻る">
+        <IconButton
+          onClick={() => {
+            if (!dirty || confirmDiscard('作成中の盤面を破棄しますか？')) onCancel();
+          }}
+          small
+          title="戻る"
+        >
           <BackIcon size={16} />
         </IconButton>
-        <span className={s.title}>{input.label === null ? '盤面を作成' : '読み取り結果を確認'}</span>
+        <span className={s.title}>{input.imageUrl ? '読み取り結果を確認' : '盤面を作成'}</span>
         <IconButton onClick={undo} disabled={!past.length} small title="元に戻す">
           <UndoIcon size={16} />
         </IconButton>
@@ -203,41 +224,86 @@ export function Setup({
 
       <div className={s.boardArea}>
         <div className={s.boardBox}>
-          <BoardView
-            n={n}
-            regions={regions}
-            palette={palette}
-            user={emptyMarks(n)}
-            imported={imported}
-            showImported
-            violations={violations}
-            onCellPaint={paint}
-            onCellLongPress={cycleMark}
-          />
+          {tool === 'marks' ? (
+            <BoardView
+              n={n}
+              regions={regions}
+              palette={palette}
+              user={imported}
+              imported={emptyMarks(n)}
+              showImported={false}
+              violations={violations}
+              onStroke={strokeMarks}
+            />
+          ) : (
+            <BoardView
+              n={n}
+              regions={regions}
+              palette={palette}
+              user={emptyMarks(n)}
+              imported={imported}
+              showImported
+              violations={violations}
+              onCellPaint={paint}
+            />
+          )}
         </div>
       </div>
 
       <div className={s.label}>
-        色を選んでセルをなぞると塗れます。長押しで 空 → バツ → 猫 が切り替わります
+        {tool === 'marks'
+          ? 'タップでバツ、もう一度タップで猫。ドラッグでまとめて置けます'
+          : '色を選んでセルをなぞると塗れます'}
       </div>
       <div className={s.chips}>
         {palette.map((color, k) => (
           <button
             key={k}
             className={s.chip}
-            data-on={k === selected}
+            data-on={k === tool}
             style={{ background: color }}
-            onClick={() => setSelected(k)}
-            aria-label={`${k + 1} 色目`}
+            onClick={() => setTool(k)}
+            aria-label={`${k + 1} 色目で塗る`}
           />
         ))}
+        <span className={s.chipDivider} />
+        <button
+          className={`${s.chip} ${s.markTool}`}
+          data-on={tool === 'marks'}
+          onClick={() => setTool('marks')}
+          aria-label="バツと猫を置く"
+        >
+          <BrushIcon size={19} />
+        </button>
       </div>
 
       <div className={s.bottom}>
+        {input.imageUrl && (
+          <button
+            className={s.check}
+            onClick={() => setShowImage((v) => !v)}
+            aria-label="読み込んだ画像を確認"
+          >
+            <ImageIcon size={18} />
+            画像を確認
+          </button>
+        )}
         <button className={s.done} onClick={finish} disabled={blocked}>
           {doneLabel}
         </button>
       </div>
+
+      {showImage && input.imageUrl && (
+        <div className={s.imageSheet} onPointerDown={() => setShowImage(false)}>
+          <img src={input.imageUrl} alt="読み込んだスクリーンショット" draggable={false} />
+          <div className={s.imageBottom}>
+            <button className={s.check} onClick={() => setShowImage(false)}>
+              <ImageIcon size={18} />
+              画像を閉じる
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

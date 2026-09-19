@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { useKeyboardInset } from '../../state/viewport';
 import s from './ui.module.css';
 
 export function IconButton({
@@ -39,10 +40,18 @@ export function Sheet({
   onClose: () => void;
   title?: string;
 }) {
+  const keyboard = useKeyboardInset();
   return (
     <>
       <div className={s.backdrop} onPointerDown={onClose} />
-      <div className={s.sheet}>
+      <div
+        className={s.sheet}
+        style={{
+          bottom: keyboard,
+          maxHeight: `calc(100dvh - ${keyboard + 24}px)`,
+          paddingBottom: keyboard ? 18 : undefined,
+        }}
+      >
         {title && <div className={s.sheetTitle}>{title}</div>}
         {children}
       </div>

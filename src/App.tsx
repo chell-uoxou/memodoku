@@ -8,7 +8,9 @@ import { formatToday, newId, newMemoSet } from './state/memoSet';
 import { suppressBrowserGestures } from './gestures';
 import * as db from './db/db';
 import { decodeShare, encodeShare, readSharePayload, shareUrl } from './share/codec';
-import { importScreenshot, pickImage } from './vision/import';
+import { importScreenshot, pickImage, readClipboardImage } from './vision/import';
+import { Busy } from './components/ui/Busy';
+import { useBeforeUnload } from './state/unsaved';
 import { blankSetup as blank } from './components/Setup/Setup';
 import './styles/global.css';
 
@@ -23,8 +25,18 @@ export default function App() {
   const [view, setView] = useState<View>({ kind: 'home' });
   const [boards, setBoards] = useState<Map<string, Board>>(new Map());
   const [memoSets, setMemoSets] = useState<MemoSet[]>([]);
+  const [busy, setBusy] = useState(false);
   const autosave = useRef<number | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
+  const imageUrl = useRef<string | null>(null);
+  const pending = useRef<MemoSet | null>(null);
+
+  const [setupDirty, setSetupDirty] = useState(false);
+
+  // 未保存の変更があるあいだはタブを閉じる前に確認する
+  useBeforeUnload(
+    view.kind === 'memo' ? !view.saved : view.kind === 'setup' ? setupDirty : false,
+  );
 
   useEffect(suppressBrowserGestures, []);
 
@@ -49,6 +61,7 @@ export default function App() {
       setView((prev) =>
         prev.kind === 'memo' ? { ...prev, memoSet } : prev,
       );
+      pending.current = memoSet;
       if (autosave.current !== null) clearTimeout(autosave.current);
       autosave.current = window.setTimeout(() => {
         autosave.current = null;
@@ -63,9 +76,30 @@ export default function App() {
 
   /** §5 スクリーンショットから補正画面へ。読めなければ空の盤面を出す */
   const handleImage = useCallback(async (blob: Blob) => {
-    const input = await importScreenshot(blob).catch(() => null);
-    setView({ kind: 'setup', input: input ?? blank(9), id: newId() });
+    setBusy(true);
+    try {
+      const input = await importScreenshot(blob).catch(() => null);
+      if (imageUrl.current) URL.revokeObjectURL(imageUrl.current);
+      imageUrl.current = URL.createObjectURL(blob);
+      setView({
+        kind: 'setup',
+        input: { ...(input ?? blank(9)), imageUrl: imageUrl.current },
+        id: newId(),
+      });
+    } finally {
+      setBusy(false);
+    }
   }, []);
+
+  const handlePaste = useCallback(async () => {
+    try {
+      const blob = await readClipboardImage();
+      if (blob) await handleImage(blob);
+      else window.alert('クリップボードに画像がありません。');
+    } catch {
+      window.alert('クリップボードを読み取れませんでした。');
+    }
+  }, [handleImage]);
 
   // ファイル選択・ドラッグ&ドロップ・クリップボード貼り付けの3経路
   useEffect(() => {
@@ -91,6 +125,23 @@ export default function App() {
       document.removeEventListener('dragover', onDragOver);
     };
   }, [handleImage]);
+
+  // デバウンス中の変更を取りこぼさないよう、離脱時に書き出す
+  useEffect(() => {
+    const flush = () => {
+      const memoSet = pending.current;
+      if (!memoSet) return;
+      void db.getMemoSet(memoSet.id).then((existing) => {
+        if (existing) void db.putMemoSet(memoSet);
+      });
+    };
+    window.addEventListener('pagehide', flush);
+    document.addEventListener('visibilitychange', flush);
+    return () => {
+      window.removeEventListener('pagehide', flush);
+      document.removeEventListener('visibilitychange', flush);
+    };
+  }, []);
 
   const saveNow = useCallback(
     async (board: Board, memoSet: MemoSet, boardName: string, setName: string) => {
@@ -121,11 +172,13 @@ export default function App() {
     [memoSets, boards],
   );
 
+  const screen = (() => {
   if (view.kind === 'setup') {
     return (
       <Setup
         key={view.id}
         input={view.input}
+        onDirtyChange={setSetupDirty}
         onCancel={() => setView({ kind: 'home' })}
         onDone={(board: Board, imported: Marks) => {
           const existing = boards.get(board.id);
@@ -193,31 +246,17 @@ export default function App() {
 
   if (view.kind === 'home') {
     return (
-      <>
-        <ImagePicker inputRef={fileInput} onPick={handleImage} />
-        <Home
-          memoSetCount={memoSets.length}
-          onImport={() => fileInput.current?.click()}
-          onManual={() => setView({ kind: 'setup', input: blankSetup(9), id: newId() })}
-          onOpenList={() => setView({ kind: 'list' })}
-        />
-      </>
+      <Home
+        memoSetCount={memoSets.length}
+        onImport={() => fileInput.current?.click()}
+        onPaste={() => void handlePaste()}
+        onManual={() => setView({ kind: 'setup', input: blankSetup(9), id: newId() })}
+        onOpenList={() => setView({ kind: 'list' })}
+      />
     );
   }
 
   return (
-    <>
-      <input
-        ref={fileInput}
-        type="file"
-        accept="image/*"
-        style={{ display: 'none' }}
-        onChange={(e) => {
-          const file = e.target.files?.[0];
-          e.target.value = '';
-          if (file) void handleImage(file);
-        }}
-      />
     <List
       boards={boards}
       memoSets={memoSets}
@@ -251,6 +290,14 @@ export default function App() {
       onCopyLink={(id) => void copyLink(id)}
       onBack={() => setView({ kind: 'home' })}
     />
+  );
+  })();
+
+  return (
+    <>
+      <ImagePicker inputRef={fileInput} onPick={handleImage} />
+      {screen}
+      {busy && <Busy label="スクショを読み取っています" />}
     </>
   );
 }

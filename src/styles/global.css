@@ -59,6 +59,12 @@ input {
   color: inherit;
 }
 
+input::placeholder {
+  color: var(--ink-weak);
+  opacity: 0.45;
+  font-weight: 500;
+}
+
 img {
   -webkit-user-drag: none;
 }

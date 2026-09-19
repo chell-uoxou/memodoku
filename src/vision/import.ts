@@ -27,6 +27,17 @@ export async function importScreenshot(blob: Blob): Promise<SetupInput | null> {
   };
 }
 
+/** クリップボードを直接読む（ボタンからの貼り付け用） */
+export async function readClipboardImage(): Promise<Blob | null> {
+  if (!navigator.clipboard?.read) return null;
+  const items = await navigator.clipboard.read();
+  for (const item of items) {
+    const type = item.types.find((t) => t.startsWith('image/'));
+    if (type) return await item.getType(type);
+  }
+  return null;
+}
+
 /** クリップボード・ドロップイベントから画像を1枚取り出す */
 export function pickImage(source: DataTransfer | ClipboardEvent['clipboardData']): Blob | null {
   if (!source) return null;
