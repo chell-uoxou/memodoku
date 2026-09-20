@@ -17,14 +17,14 @@
   margin-bottom: 6px;
 }
 
+/* 中身は public/favicon.svg をそのまま読む。ロゴの実体を1枚に寄せて、
+   アプリ内のマークとホーム画面のアイコンがずれないようにする。
+   favicon 側の角丸は 5% と浅いので、ここで 15px に丸め直す */
 .mark {
   width: 52px;
   height: 52px;
   border-radius: 15px;
-  background: var(--accent);
-  color: var(--ink);
-  display: grid;
-  place-items: center;
+  overflow: hidden;
   flex: none;
   box-shadow: var(--shadow);
 }

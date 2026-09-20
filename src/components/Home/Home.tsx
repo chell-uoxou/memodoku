@@ -1,5 +1,4 @@
 import {
-  CatMarkIcon,
   ChevronRightIcon,
   ClipboardIcon,
   ClockIcon,
@@ -24,9 +23,13 @@ export function Home({
   return (
     <div className={s.root}>
       <div className={s.brand}>
-        <span className={s.mark}>
-          <CatMarkIcon size={28} />
-        </span>
+        <img
+          className={s.mark}
+          src={`${import.meta.env.BASE_URL}favicon.svg`}
+          alt=""
+          width={52}
+          height={52}
+        />
         <span>
           <div className={s.title}>Memodoku</div>
           <div className={s.tagline}>Meowdokuの盤面を読み込み、メモ、共有</div>
