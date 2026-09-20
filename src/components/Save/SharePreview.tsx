@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Sheet, ui } from '../ui';
+import { Sheet } from '../ui';
 import { SHARE_MESSAGE, type SharePayload } from '../../share/send';
 import s from './SharePreview.module.css';
 
@@ -11,10 +11,12 @@ import s from './SharePreview.module.css';
 export function SharePreview({
   payload,
   onClose,
+  onCopy,
   onShare,
 }: {
   payload: SharePayload;
   onClose: () => void;
+  onCopy: () => void;
   onShare: () => void;
 }) {
   const [preview, setPreview] = useState<string | null>(null);
@@ -42,7 +44,10 @@ export function SharePreview({
         <button className={s.cancel} onClick={onClose}>
           キャンセル
         </button>
-        <button className={ui.primary} style={{ margin: 0 }} onClick={onShare}>
+        <button className={s.copy} onClick={onCopy}>
+          リンクをコピー
+        </button>
+        <button className={s.share} onClick={onShare}>
           共有する
         </button>
       </div>

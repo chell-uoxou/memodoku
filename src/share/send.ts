@@ -48,9 +48,28 @@ export function shareLink({ title, url, image }: SharePayload): Promise<string |
 }
 
 function copy(body: string): Promise<string | null> {
-  return navigator.clipboard.writeText(body).then(
-    () => 'リンクをコピーしました',
-    () => 'リンクをコピーできませんでした',
+  return writeClipboard(body).then(copyMessage);
+}
+
+/**
+ * リンクだけをクリップボードに入れる。共有シートの「リンクをコピー」から呼ぶ。
+ * 案内文は付けない。アドレスバーにそのまま貼れるようにしたいため。
+ * `navigator.share` と同じく、タップと同じタスクの中で呼ぶこと。
+ */
+export function copyShareLink(url: string): Promise<string> {
+  return writeClipboard(url).then(copyMessage);
+}
+
+function copyMessage(ok: boolean): string {
+  return ok ? 'リンクをコピーしました' : 'リンクをコピーできませんでした';
+}
+
+/** 非セキュアコンテキストでは navigator.clipboard 自体が無いので、触る前に確かめる */
+function writeClipboard(text: string): Promise<boolean> {
+  if (!navigator.clipboard?.writeText) return Promise.resolve(false);
+  return navigator.clipboard.writeText(text).then(
+    () => true,
+    () => false,
   );
 }
 

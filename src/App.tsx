@@ -9,7 +9,7 @@ import { suppressBrowserGestures } from './gestures';
 import { emptyMarks } from './model/board';
 import * as db from './db/db';
 import { decodeShare, encodeShare, shareUrl } from './share/codec';
-import { saveImage, shareLink, type SharePayload } from './share/send';
+import { copyShareLink, saveImage, shareLink, type SharePayload } from './share/send';
 import { SharePreview } from './components/Save/SharePreview';
 import { boardImageName, renderBoardPng } from './share/image';
 import { Toast } from './components/ui/Toast';
@@ -694,6 +694,14 @@ export default function App() {
         <SharePreview
           payload={sharePreview}
           onClose={() => setSharePreview(null)}
+          onCopy={() => {
+            const payload = sharePreview;
+            setSharePreview(null);
+            void copyShareLink(payload.url).then((message) => {
+              haptics.notice();
+              setToast(message);
+            });
+          }}
           onShare={() => {
             const payload = sharePreview;
             setSharePreview(null);
