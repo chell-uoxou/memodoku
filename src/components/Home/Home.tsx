@@ -32,7 +32,9 @@ export function Home({
         />
         <span>
           <div className={s.title}>Memodoku</div>
-          <div className={s.tagline}>Meowdokuの盤面を読み込み、メモ、共有</div>
+          <div className={s.tagline}>
+            Meowdokuの盤面を読込、無制限にメモ、かんたん共有
+          </div>
         </span>
       </div>
 

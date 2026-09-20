@@ -26,7 +26,7 @@ export default defineConfig({
       manifest: {
         name: 'Memodoku',
         short_name: 'Memodoku',
-        description: 'Meowdokuの盤面を読み込み、メモ、共有',
+        description: 'Meowdokuの盤面を読込、無制限にメモ、かんたん共有',
         start_url: './',
         display: 'standalone',
         background_color: '#F6EFE7',
