@@ -1,6 +1,6 @@
 import type { Board, Marks } from '../model/types';
 import { CAT, CROSS } from '../model/types';
-import { CAT_PATH } from '../components/ui/catPath';
+import { CAT_BOX, CAT_PATH, CAT_SCALE, CAT_STROKE } from '../components/ui/catPath';
 
 const BG = '#F6EFE7';
 const INK = '#6E4B3A';
@@ -55,11 +55,13 @@ export async function renderBoardPng(
         ctx.stroke();
       } else if (marks[i] === CAT) {
         ctx.save();
-        ctx.translate(x, y);
-        ctx.scale(cell / 100, cell / 100);
+        ctx.translate(x + cell / 2, y + cell / 2);
+        ctx.scale((cell / 100) * CAT_SCALE, (cell / 100) * CAT_SCALE);
+        ctx.translate(-CAT_BOX.cx, -CAT_BOX.cy);
         const path = new Path2D(CAT_PATH);
         ctx.strokeStyle = MARK;
-        ctx.lineWidth = 6;
+        // lineWidth はスケール後の座標系なので、見た目の太さを保つために割り戻す
+        ctx.lineWidth = CAT_STROKE / CAT_SCALE;
         ctx.lineJoin = 'round';
         ctx.stroke(path);
         ctx.fillStyle = INK;
