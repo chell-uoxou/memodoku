@@ -579,6 +579,28 @@ export default function App() {
     [memoSets, boards, share],
   );
 
+  /**
+   * 共有リンクで開いた画面からホームへ抜ける。
+   * この画面はスタックの1枚目なので back では出られない。ハッシュに載っている
+   * 共有ペイロードも落としてから、スタックごとホームに差し替える。
+   */
+  const leaveShare = useCallback(
+    async (dirty: boolean) => {
+      if (
+        dirty &&
+        !(await confirm({
+          title: 'ホームに戻りますか？',
+          message: 'このメモへの変更は保存されません。残すなら先に「保存」で取り込んでください。',
+          confirmLabel: '戻る',
+        }))
+      )
+        return;
+      history.replaceState({ depth: 1 }, '', location.pathname);
+      navigate('pop', () => setStack([{ kind: 'home' }]));
+    },
+    [confirm],
+  );
+
   // 書き込みのたびに作り直さないよう、少し待ってから先読みする
   useEffect(() => {
     if (view.kind !== 'memo' && view.kind !== 'share') return;
@@ -628,6 +650,7 @@ export default function App() {
         key={view.memoSet.id}
         board={view.board}
         initialMemoSet={view.memoSet}
+        onHome={(dirty) => void leaveShare(dirty)}
         onSaveImage={(memoSet) => saveBoardImage(view.board, memoSet)}
         onReset
         shared

@@ -17,6 +17,7 @@ export function MemoSession({
   board,
   initialMemoSet,
   onBack,
+  onHome,
   onChange,
   onRename,
   onSave,
@@ -29,6 +30,8 @@ export function MemoSession({
   board: Board;
   initialMemoSet: MemoSet;
   onBack?: () => void;
+  /** ヘッダのロゴから抜ける。読み込み時から変わっていれば dirty が true */
+  onHome?: (dirty: boolean) => void;
   onChange?: (memoSet: MemoSet) => void;
   /** 保存済みのメモの名前を変える（鉛筆ボタン） */
   onRename?: (memoName: string, boardName: string) => void;
@@ -62,6 +65,7 @@ export function MemoSession({
         memoSet={store.memoSet}
         settings={settings}
         onBack={onBack}
+        onHome={onHome ? () => onHome(store.dirty) : undefined}
         onOpenSettings={() => setSheet(true)}
         onEdit={onRename ? () => setEditing(true) : undefined}
         onSave={onSave ? () => setEditing(true) : undefined}

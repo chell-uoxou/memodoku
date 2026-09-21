@@ -174,6 +174,15 @@ export function useMemoSet(initial: MemoSet, n: number, regions: number[]) {
     return out;
   }, [memoSet]);
 
+  /** 読み込み時のメモ枚数。増減も「変更あり」に含めたいので覚えておく */
+  const [initialMemoCount] = useState(initial.memos.length);
+
+  /** 読み込んだ時点から何か変わっているか。共有ページを離れる前の確認に使う */
+  const dirty = useMemo(
+    () => changedIds.size > 0 || memoSet.memos.length !== initialMemoCount,
+    [changedIds, memoSet.memos.length, initialMemoCount],
+  );
+
   const canUndo = history(active.id).undo.length > 0;
   const canRedo = history(active.id).redo.length > 0;
 
@@ -244,6 +253,7 @@ export function useMemoSet(initial: MemoSet, n: number, regions: number[]) {
       canUndo,
       canRedo,
       changedIds,
+      dirty,
       toggleImported,
       setActiveIndex,
       addMemo,
@@ -260,6 +270,7 @@ export function useMemoSet(initial: MemoSet, n: number, regions: number[]) {
       canUndo,
       canRedo,
       changedIds,
+      dirty,
       toggleImported,
       setActiveIndex,
       addMemo,

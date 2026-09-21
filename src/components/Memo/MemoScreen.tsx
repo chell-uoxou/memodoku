@@ -25,6 +25,8 @@ export type MemoScreenProps = {
   settings: Settings;
   /** 共有リンクで開いたときは戻り先が無いので渡さない */
   onBack?: () => void;
+  /** 戻り先が無いとき、ヘッダのロゴから抜けるための行き先 */
+  onHome?: () => void;
   onOpenSettings: () => void;
   /** 名前を変更する（保存済みのメモ） */
   onEdit?: () => void;
@@ -44,6 +46,7 @@ export function MemoScreen({
   store,
   settings,
   onBack,
+  onHome,
   onOpenSettings,
   onEdit,
   onSave,
@@ -79,11 +82,15 @@ export function MemoScreen({
   return (
     <div className={s.root}>
       <div className={s.top}>
-        {onBack && (
+        {onBack ? (
           <IconButton onClick={onBack} small title="戻る">
             <BackIcon size={16} />
           </IconButton>
-        )}
+        ) : onHome ? (
+          <button className={s.home} onClick={onHome} title="ホームに戻る" aria-label="ホームに戻る">
+            <img src={`${import.meta.env.BASE_URL}favicon.svg`} alt="" width={32} height={32} />
+          </button>
+        ) : null}
         <span className={s.label}>
           {memoSet.name}
           <span className={s.sub}>
@@ -112,7 +119,7 @@ export function MemoScreen({
           <RedoIcon size={16} />
         </IconButton>
         <span className={s.grow} />
-        {onReset && (
+        {onReset && store.changedIds.has(active.id) && (
           <button
             className={`${s.reset} ${confirmReset ? s.resetConfirm : ''}`}
             onClick={() => {

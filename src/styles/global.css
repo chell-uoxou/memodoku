@@ -5,6 +5,7 @@
   --ink-weak: #a98e7e;
   --line: #eadfd3;
   --accent: #f0a868; /* 猫セルのハイライト */
+  --accent-weak: #f5c79a; /* 押せない目印に使う薄い面。墨の文字が載る */
   --mark: #ffffff; /* バツのストローク */
   --radius-card: 22px;
   --radius-cell: 12%; /* セル辺長に対する比率 */
