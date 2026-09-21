@@ -44,3 +44,6 @@ npm run build    # 静的ビルド（dist/）
 `npm run dev` は自己署名証明書の https で立ち上がります（クリップボードの読み取りなどが
 セキュアコンテキストを必要とするため）。証明書の警告が邪魔なときは `npm run dev:http` でhttpの開発サーバを起動できます。
 
+## ライセンス
+
+GPL-3.0-or-later。`test/fixtures/shots/` と `docs/screenshots/` の画像は Meowdoku の著作物なので、対象外です。
