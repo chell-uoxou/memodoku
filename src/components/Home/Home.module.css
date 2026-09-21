@@ -27,7 +27,7 @@
 }
 
 .footer a {
-  color: var(--ink);
+  color: var(--ink-weak);
   text-decoration: none;
   border-bottom: 1px solid var(--line);
 }
