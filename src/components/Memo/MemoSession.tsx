@@ -80,6 +80,7 @@ export function MemoSession({
       {editing && (
         <SaveSheet
           title={onSave ? '保存' : '名前を変更'}
+          saving={Boolean(onSave)}
           boardName={existingBoardName ?? board.label}
           setName={shared ? sharedMemoName(store.memoSet.name) : store.memoSet.name}
           existing={existingBoardName !== undefined}
