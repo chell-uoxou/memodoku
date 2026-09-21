@@ -32,7 +32,7 @@
 | `src/state/router.ts` | ハッシュだけを使うルーター（静的ホスティングで 404 にならない） |
 | `src/state/haptics.ts` | 触覚フィードバック（web-haptics 経由） |
 | `src/components/` | 画面（ホーム / 一覧 / 補正 / メモ / スクラバー / 設定 / 保存） |
-| `test/fixtures/shots/` | 実機スクショ。期待盤面は `test/shots.test.ts` に固定 |
+| `test/fixtures/shots/` | 実機スクショ。期待盤面は `test/shots.test.ts` に固定。**画像は追跡していない**（ゲームの著作物のため）。無ければ該当テストは skip される |
 
 ## 画像解析の流れ
 

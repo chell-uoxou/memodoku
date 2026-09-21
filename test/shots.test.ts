@@ -1,4 +1,6 @@
-import { describe, expect, it } from 'vitest';
+import { existsSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { beforeAll, describe, expect, it } from 'vitest';
 import { loadShot } from './fixtures/load';
 import { analyzeBitmap } from '../src/vision/parse';
 import { parseLabel } from '../src/vision/ocr';
@@ -8,7 +10,12 @@ import { regionsConnected, validateBoard } from '../src/model/board';
  * 実機スクショに対する期待盤面。目視で確認した内容をそのまま固定している。
  * 1枚目 = デイリー 10×10（猫2匹・広告バナーあり）
  * 2枚目 = レギュラー 7×7（Dynamic Island と通知バナーでヘッダが潰れている）
+ *
+ * スクショはゲームの著作物なのでリポジトリに入れていない。
+ * `test/fixtures/shots/` に置かれていないファイルの分だけ飛ばす。
  */
+const has = (name: string) =>
+  existsSync(fileURLToPath(new URL(`./fixtures/shots/${name}`, import.meta.url)));
 
 // prettier-ignore
 const DAILY_REGIONS = [
@@ -60,8 +67,12 @@ const LEVEL_MARKS = [
   0,0,0,0,0,0,0,
 ];
 
-describe('daily-10x10.jpg（デイリー・猫2匹・広告バナーあり）', () => {
-  const out = analyzeBitmap(loadShot('daily-10x10.jpg'));
+describe.skipIf(!has('daily-10x10.jpg'))('daily-10x10.jpg（デイリー・猫2匹・広告バナーあり）', () => {
+  // describe の本体はスキップ時も評価されるので、読み込みは beforeAll に置く
+  let out!: ReturnType<typeof analyzeBitmap>;
+  beforeAll(() => {
+    out = analyzeBitmap(loadShot('daily-10x10.jpg'));
+  });
 
   it('reads a 10x10 grid with no warnings', () => {
     expect(out.n).toBe(10);
@@ -88,8 +99,12 @@ describe('daily-10x10.jpg（デイリー・猫2匹・広告バナーあり）', 
   });
 });
 
-describe('level62-7x7.jpg（レギュラー・ヘッダが通知バナーで潰れている）', () => {
-  const out = analyzeBitmap(loadShot('level62-7x7.jpg'));
+describe.skipIf(!has('level62-7x7.jpg'))('level62-7x7.jpg（レギュラー・ヘッダが通知バナーで潰れている）', () => {
+  // describe の本体はスキップ時も評価されるので、読み込みは beforeAll に置く
+  let out!: ReturnType<typeof analyzeBitmap>;
+  beforeAll(() => {
+    out = analyzeBitmap(loadShot('level62-7x7.jpg'));
+  });
 
   it('reads a 7x7 grid with no warnings', () => {
     expect(out.n).toBe(7);

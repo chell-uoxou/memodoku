@@ -41,6 +41,8 @@ npm run lint
 npm run build    # 静的ビルド（dist/）
 ```
 
+`test/fixtures/shots/` は空です。Meowdoku のスクリーンショットを置き、`test/shots.test.ts` に読み取りの正解を書き足すと、画像解析の回帰テストになります。正解を書く作業はAIに任せると早いです。画像を置いていないぶんのテストは自動で飛びます。
+
 `npm run dev` は自己署名証明書の https で立ち上がります（クリップボードの読み取りなどが
 セキュアコンテキストを必要とするため）。証明書の警告が邪魔なときは `npm run dev:http` でhttpの開発サーバを起動できます。
 
